@@ -28,7 +28,6 @@ import org.bouncycastle.crypto.params.KeyParameter;
 // mostly lifted off com.android.server.BackupManagerService.java
 public class AndroidBackup {
 
-    private static final int BACKUP_MANIFEST_VERSION = 1;
     private static final String BACKUP_FILE_HEADER_MAGIC = "ANDROID BACKUP\n";
     private static final int BACKUP_FILE_VERSION = 1;
 
