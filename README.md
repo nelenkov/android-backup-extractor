@@ -1,4 +1,4 @@
-android-backup-extractor
+Android backup extractor
 ========================
 
 Utility to extract and repack Android backups created with adb logcat (ICS). 
