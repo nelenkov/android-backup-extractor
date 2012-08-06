@@ -28,6 +28,7 @@ import org.bouncycastle.crypto.params.KeyParameter;
 // mostly lifted off com.android.server.BackupManagerService.java
 public class AndroidBackup {
 
+    private static final int BACKUP_MANIFEST_VERSION = 1;
     private static final String BACKUP_FILE_HEADER_MAGIC = "ANDROID BACKUP\n";
     private static final int BACKUP_FILE_VERSION = 1;
 
@@ -156,7 +157,7 @@ public class AndroidBackup {
                 out = new FileOutputStream(filename);
                 byte[] buff = new byte[10 * 1024];
                 int read = -1;
-                int totalRead = 0;
+                long totalRead = 0;
                 while ((read = in.read(buff)) > 0) {
                     out.write(buff, 0, read);
                     totalRead += read;
@@ -341,7 +342,7 @@ public class AndroidBackup {
         return buffer.toString();
     }
 
-    private static byte[] hexToByteArray(String digits) {
+    public static byte[] hexToByteArray(String digits) {
         final int bytes = digits.length() / 2;
         if (2 * bytes != digits.length()) {
             throw new IllegalArgumentException(
