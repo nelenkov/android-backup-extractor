@@ -1,0 +1,29 @@
+<project default="all">
+    <!-- author: Jan Peter Stotz -->
+
+	<property name="jar.filename" value="abe.jar" />
+	<property name="main.class" value="org.nick.abe.Main" />
+
+
+	<target name="all" depends="build,jar" />
+
+	<target name="build">
+		<delete includeEmptyDirs="true" failonerror="false">
+			<fileset dir="build" includes="**/*" />
+		</delete>
+		<mkdir dir="build" />
+		<javac srcdir="src" destdir="build" classpath="lib/bcprov-jdk15on-147.jar" debug="true" includeantruntime="false" encoding="UTF-8" />
+	</target>
+
+	<target name="jar" depends="build" description="Create a standalone-jar (no external dependency)">
+		<delete file="${jar.filename}" />
+		<jar destfile="${jar.filename}" filesetmanifest="mergewithoutmain">
+			<manifest>
+				<attribute name="Main-Class" value="${main.class}" />
+			</manifest>
+			<fileset dir="build" />
+			<!-- Include BouncyCastle JAR -->
+			<zipfileset src="lib/bcprov-jdk15on-147.jar" includes="org/**" />
+		</jar>
+	</target>
+</project>

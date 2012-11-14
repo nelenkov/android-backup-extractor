@@ -16,6 +16,14 @@ Syntax:
 If you don't specify a password the backup archive won't be encrypted but 
 only compressed. 
 
+Alternatively: 
+
+Use to bundled Ant script to create a an all-in-one jar and run with: 
+
+java -jar abe.jar pack|unpack [parameters as above]
+
+(Thanks to Jan Peter Stotz for contributing the build.xml file)
+
 More details about the backup format and the tool implementation in the 
 associated blog post: 
 
