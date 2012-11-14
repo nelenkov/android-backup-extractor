@@ -18,9 +18,10 @@ only compressed.
 
 Alternatively: 
 
-Use to bundled Ant script to create a an all-in-one jar and run with: 
+Use the bundled Ant script to create an all-in-one jar and run with: 
+(you still need to put the Bouncy Castle jar in lib/)
 
-java -jar abe.jar pack|unpack [parameters as above]
+```java -jar abe.jar pack|unpack [parameters as above]```
 
 (Thanks to Jan Peter Stotz for contributing the build.xml file)
 
