@@ -9,6 +9,7 @@
 *.class
 .idea
 *.iml
+*.jar
 
 # generated files
 bin/
