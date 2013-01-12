@@ -1,5 +1,6 @@
 package org.nick.abe;
 
+import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.crypto.PBEParametersGenerator;
 import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
 import org.bouncycastle.crypto.params.KeyParameter;
@@ -106,14 +107,24 @@ public class AndroidBackup {
         int len = mkBlob[offset++];
         IV = Arrays.copyOfRange(mkBlob, offset, offset + len);
         if (DEBUG) {
-          System.out.println("IV: " + toHex(IV));
+          StringBuffer buff = new StringBuffer();
+          for (byte b : IV) {
+            buff.append(String.format("%02X", b));
+          }
+
+          System.out.println("IV: " + Hex.encodeHexString(IV));
         }
         offset += len;
         // then the master key itself
         len = mkBlob[offset++];
         byte[] mk = Arrays.copyOfRange(mkBlob, offset, offset + len);
         if (DEBUG) {
-          System.out.println("MK: " + toHex(mk));
+          StringBuffer buff = new StringBuffer();
+          for (byte b : mk) {
+            buff.append(String.format("%02X", b));
+          }
+
+          System.out.println("MK: " + Hex.encodeHexString(mk));
         }
         offset += len;
         // and finally the master key checksum hash
@@ -121,13 +132,23 @@ public class AndroidBackup {
         byte[] mkChecksum = Arrays.copyOfRange(mkBlob, offset, offset
             + len);
         if (DEBUG) {
-          System.out.println("MK checksum: " + toHex(mkChecksum));
+          StringBuffer buff = new StringBuffer();
+          for (byte b : mkChecksum) {
+            buff.append(String.format("%02X", b));
+          }
+
+          System.out.println("MK checksum: " + Hex.encodeHexString(mkChecksum));
         }
 
         // now validate the decrypted master key against the checksum
         byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds);
+        StringBuffer buff = new StringBuffer();
+        for (byte b : calculatedCk) {
+          buff.append(String.format("%02X", b));
+        }
+
         System.out.println("Calculated MK checksum: "
-            + toHex(calculatedCk));
+            + Hex.encodeHexString(calculatedCk));
         if (Arrays.equals(calculatedCk, mkChecksum)) {
           ivSpec = new IvParameterSpec(IV);
           c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(mk, "AES"),
@@ -264,10 +285,20 @@ public class AndroidBackup {
     headerbuf.append(ENCRYPTION_ALGORITHM_NAME);
     headerbuf.append('\n');
     // line 5: user password salt [hex]
-    headerbuf.append(toHex(newUserSalt));
+    StringBuffer buff2 = new StringBuffer();
+    for (byte b2 : newUserSalt) {
+      buff2.append(String.format("%02X", b2));
+    }
+
+    headerbuf.append(Hex.encodeHexString(newUserSalt));
     headerbuf.append('\n');
     // line 6: master key checksum salt [hex]
-    headerbuf.append(toHex(checksumSalt));
+    StringBuffer buff1 = new StringBuffer();
+    for (byte b1 : checksumSalt) {
+      buff1.append(String.format("%02X", b1));
+    }
+
+    headerbuf.append(Hex.encodeHexString(checksumSalt));
     headerbuf.append('\n');
     // line 7: number of PBKDF2 rounds used [decimal]
     headerbuf.append(PBKDF2_HASH_ROUNDS);
@@ -278,7 +309,12 @@ public class AndroidBackup {
     mkC.init(Cipher.ENCRYPT_MODE, userKey);
 
     byte[] IV = mkC.getIV();
-    headerbuf.append(toHex(IV));
+    StringBuffer buff = new StringBuffer();
+    for (byte b : IV) {
+      buff.append(String.format("%02X", b));
+    }
+
+    headerbuf.append(Hex.encodeHexString(IV));
     headerbuf.append('\n');
 
     // line 9: master IV + key blob, encrypted by the user key [hex].  Blob format:
@@ -307,20 +343,10 @@ public class AndroidBackup {
     mkOut.write(checksum);
     mkOut.flush();
     byte[] encryptedMk = mkC.doFinal(blob.toByteArray());
-    headerbuf.append(toHex(encryptedMk));
+    headerbuf.append(Hex.encodeHexString(encryptedMk));
     headerbuf.append('\n');
 
     return finalOutput;
-  }
-
-
-  public static String toHex(byte[] bytes) {
-    StringBuffer buff = new StringBuffer();
-    for (byte b : bytes) {
-      buff.append(String.format("%02X", b));
-    }
-
-    return buff.toString();
   }
 
 
@@ -352,8 +378,18 @@ public class AndroidBackup {
 
   public static byte[] makeKeyChecksum(byte[] pwBytes, byte[] salt, int rounds) {
     if (DEBUG) {
-      System.out.println("key bytes: " + toHex(pwBytes));
-      System.out.println("salt bytes: " + toHex(salt));
+      StringBuffer buff1 = new StringBuffer();
+      for (byte b1 : pwBytes) {
+        buff1.append(String.format("%02X", b1));
+      }
+
+      System.out.println("key bytes: " + Hex.encodeHexString(pwBytes));
+      StringBuffer buff = new StringBuffer();
+      for (byte b : salt) {
+        buff.append(String.format("%02X", b));
+      }
+
+      System.out.println("salt bytes: " + Hex.encodeHexString(salt));
     }
 
     char[] mkAsChar = new char[pwBytes.length];
@@ -403,10 +439,8 @@ public class AndroidBackup {
         // Android treats password bytes as ASCII, which is obviously
         // not the case when an AES key is used as a 'password'.
         // Use the same method for compatibility.
-        PBEParametersGenerator.PKCS5PasswordToBytes(pwArray), salt,
-        rounds);
-    KeyParameter params = (KeyParameter) generator
-        .generateDerivedParameters(PBKDF2_KEY_SIZE);
+        PBEParametersGenerator.PKCS5PasswordToBytes(pwArray), salt, rounds);
+    KeyParameter params = (KeyParameter) generator         .generateDerivedParameters(PBKDF2_KEY_SIZE);
 
     return new SecretKeySpec(params.getKey(), "AES");
   }
