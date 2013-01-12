@@ -28,7 +28,7 @@ public class AndroidBackupTest {
 
   @Test
   public void shouldPackTarEncrypted() throws IOException {
-    File destinationFile = new File("test.backup");
+    File destinationFile = File.createTempFile("test","backup");
     File extractedTemp = File.createTempFile("extracted","tar");
 
     AndroidBackup.packTar(TAR.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
