@@ -6,6 +6,7 @@ import org.apache.commons.io.IOUtils;
 import org.bouncycastle.crypto.PBEParametersGenerator;
 import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,11 @@ import static org.fest.util.Preconditions.checkNotNull;
 
 // mostly lifted off com.android.server.BackupManagerService.java
 public class AndroidBackup {
+
+  static {
+    Security.addProvider(new BouncyCastleProvider());
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(AndroidBackup.class);
 
   private static final String BACKUP_FILE_HEADER_MAGIC = "ANDROID BACKUP\n";
@@ -47,35 +53,50 @@ public class AndroidBackup {
     checkNotNull(password);
 
     try (InputStream rawInStream = new FileInputStream(backupFilename)) {
-      String magic = readHeaderLine(rawInStream); // 1
-      LOG.debug("Magic: {}", magic);
-
-      String version = readHeaderLine(rawInStream); // 2
-      LOG.debug("Version: {}", version);
-
-      if (BACKUP_FILE_VERSION != Integer.parseInt(version)) {
-        throw new IllegalArgumentException("Don't know how to process version " + version);
-      }
-
-      String compressed = readHeaderLine(rawInStream); // 3
-      boolean isCompressed = Integer.parseInt(compressed) == 1;
-      LOG.debug("Compressed: {}", compressed);
-
-      String encryptionAlg = readHeaderLine(rawInStream); // 4
-      LOG.debug("Algorithm: {}", encryptionAlg);
-
-      boolean encrypted = encryptionAlg.equals(ENCRYPTION_ALGORITHM_NAME);
-
-      InputStream baseStream = encrypted ? getCipherStream(password, rawInStream) : rawInStream;
-
-      try (InputStream in = isCompressed ? new InflaterInputStream(baseStream) : baseStream) {
-        try (FileOutputStream out = new FileOutputStream(filename)) {
-          IOUtils.copy(in, out);
-          out.flush();
-        }
-      }
+      extractFromTarFromStream(filename, password, rawInStream);
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  public void extractAsTarFromStdin(String filename, String password) {
+    checkNotNull(filename);
+    checkNotNull(password);
+
+    try {
+      extractFromTarFromStream(filename, password, System.in);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void extractFromTarFromStream(String filename, String password, InputStream rawInStream) throws IOException, DecoderException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+    String magic = readHeaderLine(rawInStream); // 1
+    LOG.debug("Magic: {}", magic);
+
+    String version = readHeaderLine(rawInStream); // 2
+    LOG.debug("Version: {}", version);
+
+    if (BACKUP_FILE_VERSION != Integer.parseInt(version)) {
+      throw new IllegalArgumentException("Don't know how to process version " + version);
+    }
+
+    String compressed = readHeaderLine(rawInStream); // 3
+    boolean isCompressed = Integer.parseInt(compressed) == 1;
+    LOG.debug("Compressed: {}", compressed);
+
+    String encryptionAlg = readHeaderLine(rawInStream); // 4
+    LOG.debug("Algorithm: {}", encryptionAlg);
+
+    boolean encrypted = encryptionAlg.equals(ENCRYPTION_ALGORITHM_NAME);
+
+    InputStream baseStream = encrypted ? getCipherStream(password, rawInStream) : rawInStream;
+
+    try (InputStream in = isCompressed ? new InflaterInputStream(baseStream) : baseStream) {
+      try (FileOutputStream out = new FileOutputStream(filename)) {
+        IOUtils.copy(in, out);
+        out.flush();
+      }
     }
   }
 
