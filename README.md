@@ -15,3 +15,8 @@ associated blog post:
 
 http://nelenkov.blogspot.com/2012/06/unpacking-android-backups.html
 
+my changes:
+- refactored for use as lib
+- added tests
+- made a maven project
+
