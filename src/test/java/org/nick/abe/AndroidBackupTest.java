@@ -105,14 +105,11 @@ public class AndroidBackupTest {
     assertThat(destinationFile).hasContentEqualTo(TAR);
   }
 
-  @Test
+  @Test(expected = NullPointerException.class)
   public void shouldFailOnExtractAsTarEncryptedWithPasswordIsNull() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
-    try {
-      AndroidBackup.extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), null);
-    } catch (Exception e) {
-      assertThat(e.getCause()).hasMessage("Backup encrypted but password not specified");
-    }
+
+    AndroidBackup.extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), null);
   }
 
   @Test
@@ -126,7 +123,7 @@ public class AndroidBackupTest {
   }
 
   private void packTar(File tar, File destination, String password) {
-    AndroidBackup.packTar(tar.getAbsolutePath(), destination.getAbsolutePath(), password);
+    AndroidBackup.packTar(AndroidBackupTest.TAR.getAbsolutePath(), destination.getAbsolutePath(), password);
   }
 
   @Test
@@ -166,6 +163,26 @@ public class AndroidBackupTest {
       AndroidBackup.extractAsTar(INVALID_ENCRYPTED_BACKUP2.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessage("Invalid password or master key checksum.");
+    }
+  }
+
+  @Test
+  public void shouldFailReadingMissingTar() throws IOException {
+    File destinationFile = File.createTempFile("foo", "bar");
+    try {
+      AndroidBackup.extractAsTar("missing", destinationFile.getAbsolutePath(), "");
+    } catch (Exception e) {
+      assertThat(e.getCause()).hasMessageStartingWith("missing ");
+    }
+  }
+
+  @Test
+  public void shouldFailReadingMissingBackupFile() throws IOException {
+    File destinationFile = File.createTempFile("foo", "bar");
+    try {
+      AndroidBackup.packTar("missing", destinationFile.getAbsolutePath(), "");
+    } catch (Exception e) {
+      assertThat(e.getCause()).hasMessageStartingWith("missing ");
     }
   }
 

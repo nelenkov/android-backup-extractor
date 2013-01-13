@@ -22,6 +22,8 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import static org.fest.util.Preconditions.checkNotNull;
+
 // mostly lifted off com.android.server.BackupManagerService.java
 public class AndroidBackup {
   private static final Logger LOG = LoggerFactory.getLogger(AndroidBackup.class);
@@ -41,16 +43,17 @@ public class AndroidBackup {
   private static final SecureRandom random = new SecureRandom();
   private static final char NEW_LINE = '\n';
 
-  private static boolean COMPRESS_OUTPUT = true;
+  private static boolean compressOutput = true;
 
   private AndroidBackup() {
   }
 
   public static void extractAsTar(String backupFilename, String filename, String password) {
-    try {
-      InputStream rawInStream = new FileInputStream(backupFilename);
-      CipherInputStream cipherStream = null;
+    checkNotNull(backupFilename);
+    checkNotNull(filename);
+    checkNotNull(password);
 
+    try (InputStream rawInStream = new FileInputStream(backupFilename)) {
       String magic = readHeaderLine(rawInStream); // 1
       LOG.debug("Magic: {}", magic);
 
@@ -68,11 +71,10 @@ public class AndroidBackup {
       String encryptionAlg = readHeaderLine(rawInStream); // 4
       LOG.debug("Algorithm: {}", encryptionAlg);
 
-      boolean isEncrypted = false;
-
+      InputStream baseStream = rawInStream;
       if (encryptionAlg.equals(ENCRYPTION_ALGORITHM_NAME)) {
-        isEncrypted = true;
-        if (password == null || "".equals(password)) {
+
+        if ("".equals(password)) {
           throw new IllegalArgumentException("Backup encrypted but password not specified");
         }
 
@@ -92,7 +94,7 @@ public class AndroidBackup {
 
         // decrypt the master key blob
         Cipher c = Cipher.getInstance(ENCRYPTION_MECHANISM);
-        SecretKey userKey = buildPasswordKey(password, userSalt, rounds);
+        SecretKey userKey = buildPasswordKey(password.toCharArray(), userSalt, rounds);
         byte[] IV = Hex.decodeHex(userIvHex.toCharArray());
         IvParameterSpec ivSpec = new IvParameterSpec(IV);
         c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(userKey.getEncoded(), ALGORITHM), ivSpec);
@@ -136,15 +138,12 @@ public class AndroidBackup {
           ivSpec = new IvParameterSpec(IV);
           c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(mk, ALGORITHM), ivSpec);
           // Only if all of the above worked properly will 'result' be assigned
-          cipherStream = new CipherInputStream(rawInStream, c);
+          baseStream = new CipherInputStream(rawInStream, c);
+        } else {
+          throw new IllegalStateException("Invalid password or master key checksum.");
         }
       }
 
-      if (isEncrypted && cipherStream == null) {
-        throw new IllegalStateException("Invalid password or master key checksum.");
-      }
-
-      InputStream baseStream = isEncrypted ? cipherStream : rawInStream;
       try (InputStream in = isCompressed ? new InflaterInputStream(baseStream) : baseStream) {
         try (FileOutputStream out = new FileOutputStream(filename)) {
           IOUtils.copy(in, out);
@@ -163,42 +162,56 @@ public class AndroidBackup {
 
     headerbuf.append(BACKUP_FILE_HEADER_MAGIC);
     headerbuf.append(BACKUP_FILE_VERSION); // integer, no trailing \n
-    headerbuf.append(COMPRESS_OUTPUT ? "\n1\n" : "\n0\n");
+    headerbuf.append(compressOutput ? "\n1\n" : "\n0\n");
 
     try (FileInputStream in = new FileInputStream(tarFilename)) {
       try (FileOutputStream ofstream = new FileOutputStream(backupFilename)) {
-        OutputStream finalOutput = ofstream;
 
         // Set up the encryption stage if appropriate, and add the correct header
         if (encrypting) {
-          finalOutput = getEncryptedOutputStream(password, headerbuf, ofstream);
+          try (OutputStream encOutput = getEncryptedOutputStream(password, headerbuf, ofstream)) {
+            if (compressOutput) {
+              try (OutputStream deflateOutput = getDeflateOutputStream(encOutput)) {
+                writeOut(in, ofstream, headerbuf, deflateOutput);
+              }
+            } else {
+              writeOut(in, ofstream, headerbuf, encOutput);
+            }
+          }
         } else {
           headerbuf.append("none\n");
+          if (compressOutput) {
+            try (OutputStream deflateOutput = getDeflateOutputStream(ofstream)) {
+              writeOut(in, ofstream, headerbuf, deflateOutput);
+              deflateOutput.flush();
+            }
+          } else {
+            writeOut(in, ofstream, headerbuf, ofstream);
+          }
         }
-
-        byte[] header = headerbuf.toString().getBytes("UTF-8");
-        ofstream.write(header);
-
-        // Set up the compression stage feeding into the encryption stage (if any)
-        if (COMPRESS_OUTPUT) {
-          Deflater deflater = new Deflater(Deflater.BEST_COMPRESSION);
-          // requires Java 7
-          finalOutput = new DeflaterOutputStream(finalOutput, deflater, true);
-        }
-
-        IOUtils.copy(in, finalOutput);
-        finalOutput.flush();
-        finalOutput.close();
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
+  private static void writeOut(FileInputStream in, OutputStream ofstream, StringBuilder headerbuf, OutputStream highLevelOut) throws IOException {
+    byte[] header = headerbuf.toString().getBytes("UTF-8");
+    ofstream.write(header);
+    IOUtils.copy(in, highLevelOut);
+  }
+
+  private static OutputStream getDeflateOutputStream(OutputStream finalOutput) {
+    Deflater deflater = new Deflater(Deflater.BEST_COMPRESSION);
+    // requires Java 7
+    finalOutput = new DeflaterOutputStream(finalOutput, deflater, true);
+    return finalOutput;
+  }
+
   private static OutputStream getEncryptedOutputStream(String password, StringBuilder headerbuf, FileOutputStream ofstream) throws Exception {
     OutputStream finalOutput;// User key will be used to encrypt the master key.
     byte[] newUserSalt = randomBytes(PBKDF2_SALT_SIZE);
-    SecretKey userKey = buildPasswordKey(password, newUserSalt, PBKDF2_HASH_ROUNDS);
+    SecretKey userKey = buildPasswordKey(password.toCharArray(), newUserSalt, PBKDF2_HASH_ROUNDS);
 
     // the master key is random for each backup
     byte[] masterPw = randomBytes(MASTER_KEY_SIZE);
@@ -236,8 +249,7 @@ public class AndroidBackup {
     Cipher mkC = Cipher.getInstance(ENCRYPTION_MECHANISM);
     mkC.init(Cipher.ENCRYPT_MODE, userKey);
 
-    byte[] IV = mkC.getIV();
-    backupHeader.append(Hex.encodeHexString(IV));
+    backupHeader.append(Hex.encodeHexString(mkC.getIV()));
     backupHeader.append(NEW_LINE);
 
     // line 9: master IV + key blob, encrypted by the user key [hex].  Blob format:
@@ -250,7 +262,7 @@ public class AndroidBackup {
     //
     // The checksum is the (master key + checksum salt), run through the
     // stated number of PBKDF2 rounds
-    IV = cipher.getIV();
+    byte[] IV = cipher.getIV();
     byte[] mk = masterKeySpec.getEncoded();
     byte[] checksum = makeKeyChecksum(masterKeySpec.getEncoded(), checksumSalt, PBKDF2_HASH_ROUNDS);
 
@@ -284,7 +296,7 @@ public class AndroidBackup {
     return buffer.toString();
   }
 
-  public static byte[] makeKeyChecksum(byte[] pwBytes, byte[] salt, int rounds) {
+  private static byte[] makeKeyChecksum(byte[] pwBytes, byte[] salt, int rounds) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("key bytes: " + Hex.encodeHexString(pwBytes));
       LOG.debug("salt bytes: " + Hex.encodeHexString(salt));
@@ -297,14 +309,13 @@ public class AndroidBackup {
 
     LOG.debug("MK as string: [{}]\n", String.valueOf(mkAsChar));
 
-    Key checksum = buildCharArrayKey(mkAsChar, salt, rounds);
+    Key checksum = buildPasswordKey(mkAsChar, salt, rounds);
     LOG.debug("Key format: {}", checksum.getFormat());
 
     return checksum.getEncoded();
   }
 
-  public static SecretKey buildCharArrayKey(char[] pwArray, byte[] salt,
-                                            int rounds) {
+  private static SecretKey buildPasswordKey(char[] pwArray, byte[] salt, int rounds) {
     // Original code from BackupManagerService
     // this produces different results when run with Sun/Oracale Java SE
     // which apparently treats password bytes as UTF-8 (16?)
@@ -324,10 +335,6 @@ public class AndroidBackup {
     //        }
     //        return null;
 
-    return androidPBKDF2(pwArray, salt, rounds);
-  }
-
-  public static SecretKey androidPBKDF2(char[] pwArray, byte[] salt, int rounds) {
     PBEParametersGenerator generator = new PKCS5S2ParametersGenerator();
     generator.init(
         // PBEParametersGenerator.PKCS5PasswordToUTF8Bytes(pwArray),
@@ -340,13 +347,13 @@ public class AndroidBackup {
     return new SecretKeySpec(params.getKey(), ALGORITHM);
   }
 
-  private static SecretKey buildPasswordKey(String pw, byte[] salt, int rounds) {
-    return buildCharArrayKey(pw.toCharArray(), salt, rounds);
-  }
-
   private static byte[] randomBytes(int bits) {
     byte[] array = new byte[bits / 8];
     random.nextBytes(array);
     return array;
+  }
+
+  public static void setCompressing(boolean compressing) {
+    AndroidBackup.compressOutput = compressing;
   }
 }
