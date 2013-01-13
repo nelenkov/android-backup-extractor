@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd" >
+<log4j:configuration debug="false">
+  <appender name="stdout" class="org.apache.log4j.ConsoleAppender">
+    <param name="target" value="System.err"/>
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%d{ABSOLUTE}
+      %5p %c{1}:%L - %m%n"/>
+    </layout>
+  </appender>
+  <root>
+    <priority value="WARN"></priority>
+    <appender-ref ref="stdout"/>
+  </root>
+</log4j:configuration>
