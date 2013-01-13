@@ -1,6 +1,5 @@
 package org.nick.abe;
 
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +20,6 @@ public class Main {
   }
 
   protected void run(String[] args) {
-    LOG.debug("running with args: {}", Joiner.on(" ").join(args));
 
     if (args.length < 3) {
       exitWithErrorMsg("less than 3 arguments");
