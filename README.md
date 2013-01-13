@@ -19,4 +19,4 @@ my changes:
 - refactored for use as lib
 - added tests
 - made a maven project
-
+- all operations  now available via pipes ( cat tar.tar | java -jar abe.jar pack - ab.ab pass )
