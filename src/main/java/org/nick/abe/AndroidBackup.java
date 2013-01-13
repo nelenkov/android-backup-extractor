@@ -47,30 +47,51 @@ public class AndroidBackup {
 
   private boolean compressOutput = true;
 
-  public void extractAsTar(String backupFilename, String filename, String password) {
+  public void extractAsTarFromFileToFile(String backupFilename, String filename, String password) {
     checkNotNull(backupFilename);
     checkNotNull(filename);
-    checkNotNull(password);
-
-    try (InputStream rawInStream = new FileInputStream(backupFilename)) {
-      extractFromTarFromStream(filename, password, rawInStream);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public void extractAsTarFromStdin(String filename, String password) {
-    checkNotNull(filename);
-    checkNotNull(password);
 
     try {
-      extractFromTarFromStream(filename, password, System.in);
+      extractFromTarFromStreamToStream(new FileOutputStream(filename), new FileInputStream(backupFilename), password);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-  private void extractFromTarFromStream(String filename, String password, InputStream rawInStream) throws IOException, DecoderException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+  public void extractAsTarFromStdinToFile(String filename, String password) {
+    checkNotNull(filename);
+    checkNotNull(System.in);
+
+    try {
+      extractFromTarFromStreamToStream(new FileOutputStream(filename), System.in, password);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void extractAsTarFromFileToStdout(String filename, String password) {
+    checkNotNull(filename);
+    checkNotNull(System.out);
+
+    try {
+      extractFromTarFromStreamToStream(System.out, new FileInputStream(filename), password);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void extractAsTarFromStdinToStdout(String password) {
+    checkNotNull(System.in);
+    checkNotNull(System.out);
+
+    try {
+      extractFromTarFromStreamToStream(System.out, System.in, password);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void extractFromTarFromStreamToStream(OutputStream out, InputStream rawInStream, String password) throws IOException, DecoderException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
     String magic = readHeaderLine(rawInStream); // 1
     LOG.debug("Magic: {}", magic);
 
@@ -93,14 +114,14 @@ public class AndroidBackup {
     InputStream baseStream = encrypted ? getCipherStream(password, rawInStream) : rawInStream;
 
     try (InputStream in = isCompressed ? new InflaterInputStream(baseStream) : baseStream) {
-      try (FileOutputStream out = new FileOutputStream(filename)) {
-        IOUtils.copy(in, out);
-        out.flush();
-      }
+      IOUtils.copy(in, out);
+      out.flush();
     }
   }
 
   private InputStream getCipherStream(String password, InputStream rawInStream) throws IOException, DecoderException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+
+    checkNotNull(password);
     if ("".equals(password)) {
       throw new IllegalArgumentException("Backup encrypted but password not specified");
     }
@@ -171,7 +192,51 @@ public class AndroidBackup {
     }
   }
 
-  public void packTar(String tarFilename, String backupFilename, String password) {
+  public void packTarFromFileToFile(String filename, String backupFilename, String password) {
+    checkNotNull(backupFilename);
+    checkNotNull(filename);
+
+    try {
+      packTarFromStreamToStream(new FileInputStream(filename), new FileOutputStream(backupFilename), password);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void packTarFromStdinToFile(String filename, String password) {
+    checkNotNull(filename);
+    checkNotNull(System.in);
+
+    try {
+      packTarFromStreamToStream(System.in, new FileOutputStream(filename), password);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void packTarFromStdinToStdout(String password) {
+    checkNotNull(System.in);
+    checkNotNull(System.out);
+
+    try {
+      packTarFromStreamToStream(System.in, System.out, password);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void packTarFromFileToStdout(String backupFilename, String password) {
+    checkNotNull(System.out);
+    checkNotNull(backupFilename);
+
+    try {
+      packTarFromStreamToStream(new FileInputStream(backupFilename), System.out, password);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void packTarFromStreamToStream(InputStream in, OutputStream ofstream, String password) throws Exception {
     boolean encrypting = password != null && !"".equals(password);
 
     StringBuilder headerbuf = new StringBuilder(1024);
@@ -180,38 +245,31 @@ public class AndroidBackup {
     headerbuf.append(BACKUP_FILE_VERSION); // integer, no trailing \n
     headerbuf.append(compressOutput ? "\n1\n" : "\n0\n");
 
-    try (FileInputStream in = new FileInputStream(tarFilename)) {
-      try (FileOutputStream ofstream = new FileOutputStream(backupFilename)) {
-
-        // Set up the encryption stage if appropriate, and add the correct header
-        if (encrypting) {
-          try (OutputStream encOutput = getEncryptedOutputStream(password, headerbuf, ofstream)) {
-            if (compressOutput) {
-              try (OutputStream deflateOutput = getDeflateOutputStream(encOutput)) {
-                writeOut(in, ofstream, headerbuf, deflateOutput);
-              }
-            } else {
-              writeOut(in, ofstream, headerbuf, encOutput);
-            }
+    // Set up the encryption stage if appropriate, and add the correct header
+    if (encrypting) {
+      try (OutputStream encOutput = getEncryptedOutputStream(password, headerbuf, ofstream)) {
+        if (compressOutput) {
+          try (OutputStream deflateOutput = getDeflateOutputStream(encOutput)) {
+            writeOut(in, ofstream, headerbuf, deflateOutput);
           }
         } else {
-          headerbuf.append("none\n");
-          if (compressOutput) {
-            try (OutputStream deflateOutput = getDeflateOutputStream(ofstream)) {
-              writeOut(in, ofstream, headerbuf, deflateOutput);
-              deflateOutput.flush();
-            }
-          } else {
-            writeOut(in, ofstream, headerbuf, ofstream);
-          }
+          writeOut(in, ofstream, headerbuf, encOutput);
         }
       }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } else {
+      headerbuf.append("none\n");
+      if (compressOutput) {
+        try (OutputStream deflateOutput = getDeflateOutputStream(ofstream)) {
+          writeOut(in, ofstream, headerbuf, deflateOutput);
+          deflateOutput.flush();
+        }
+      } else {
+        writeOut(in, ofstream, headerbuf, ofstream);
+      }
     }
   }
 
-  private void writeOut(FileInputStream in, OutputStream ofstream, StringBuilder headerbuf, OutputStream highLevelOut) throws IOException {
+  private void writeOut(InputStream in, OutputStream ofstream, StringBuilder headerbuf, OutputStream highLevelOut) throws IOException {
     byte[] header = headerbuf.toString().getBytes("UTF-8");
     ofstream.write(header);
     IOUtils.copy(in, highLevelOut);
@@ -224,7 +282,7 @@ public class AndroidBackup {
     return finalOutput;
   }
 
-  private OutputStream getEncryptedOutputStream(String password, StringBuilder headerbuf, FileOutputStream ofstream) throws Exception {
+  private OutputStream getEncryptedOutputStream(String password, StringBuilder headerbuf, OutputStream ofstream) throws Exception {
     OutputStream finalOutput;// User key will be used to encrypt the master key.
     byte[] newUserSalt = randomBytes(PBKDF2_SALT_SIZE);
     SecretKey userKey = buildPasswordKey(password.toCharArray(), newUserSalt, PBKDF2_HASH_ROUNDS);
