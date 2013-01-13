@@ -4,7 +4,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.security.Security;
 
-
 public class Main {
 
   public static void main(String[] args) {
@@ -31,10 +30,11 @@ public class Main {
       password = args[3];
     }
 
+    AndroidBackup backup = new AndroidBackup();
     if (unpack) {
-      AndroidBackup.extractAsTar(backupFilename, tarFilename, password);
+      backup.extractAsTar(backupFilename, tarFilename, password);
     } else {
-      AndroidBackup.packTar(tarFilename, backupFilename, password);
+      backup.packTar(tarFilename, backupFilename, password);
     }
   }
 

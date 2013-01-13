@@ -1,5 +1,6 @@
 package org.nick.abe;
 
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.crypto.PBEParametersGenerator;
@@ -8,15 +9,11 @@ import org.bouncycastle.crypto.params.KeyParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
-import javax.crypto.SecretKey;
+import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
-import java.security.Key;
-import java.security.SecureRandom;
+import java.security.*;
 import java.util.Arrays;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
@@ -28,7 +25,6 @@ import static org.fest.util.Preconditions.checkNotNull;
 public class AndroidBackup {
   private static final Logger LOG = LoggerFactory.getLogger(AndroidBackup.class);
 
-  //  private static final int BACKUP_MANIFEST_VERSION = 1;
   private static final String BACKUP_FILE_HEADER_MAGIC = "ANDROID BACKUP\n";
   private static final int BACKUP_FILE_VERSION = 1;
 
@@ -43,12 +39,9 @@ public class AndroidBackup {
   private static final SecureRandom random = new SecureRandom();
   private static final char NEW_LINE = '\n';
 
-  private static boolean compressOutput = true;
+  private boolean compressOutput = true;
 
-  private AndroidBackup() {
-  }
-
-  public static void extractAsTar(String backupFilename, String filename, String password) {
+  public void extractAsTar(String backupFilename, String filename, String password) {
     checkNotNull(backupFilename);
     checkNotNull(filename);
     checkNotNull(password);
@@ -71,78 +64,9 @@ public class AndroidBackup {
       String encryptionAlg = readHeaderLine(rawInStream); // 4
       LOG.debug("Algorithm: {}", encryptionAlg);
 
-      InputStream baseStream = rawInStream;
-      if (encryptionAlg.equals(ENCRYPTION_ALGORITHM_NAME)) {
+      boolean encrypted = encryptionAlg.equals(ENCRYPTION_ALGORITHM_NAME);
 
-        if ("".equals(password)) {
-          throw new IllegalArgumentException("Backup encrypted but password not specified");
-        }
-
-        String userSaltHex = readHeaderLine(rawInStream); // 5
-        byte[] userSalt = Hex.decodeHex(userSaltHex.toCharArray());
-        if (userSalt.length != PBKDF2_SALT_SIZE / 8) {
-          throw new IllegalArgumentException("Invalid salt length: " + userSalt.length);
-        }
-
-        String ckSaltHex = readHeaderLine(rawInStream); // 6
-        byte[] ckSalt = Hex.decodeHex(ckSaltHex.toCharArray());
-
-        int rounds = Integer.parseInt(readHeaderLine(rawInStream)); // 7
-        String userIvHex = readHeaderLine(rawInStream); // 8
-
-        String masterKeyBlobHex = readHeaderLine(rawInStream); // 9
-
-        // decrypt the master key blob
-        Cipher c = Cipher.getInstance(ENCRYPTION_MECHANISM);
-        SecretKey userKey = buildPasswordKey(password.toCharArray(), userSalt, rounds);
-        byte[] IV = Hex.decodeHex(userIvHex.toCharArray());
-        IvParameterSpec ivSpec = new IvParameterSpec(IV);
-        c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(userKey.getEncoded(), ALGORITHM), ivSpec);
-        byte[] mkCipher = Hex.decodeHex(masterKeyBlobHex.toCharArray());
-        byte[] mkBlob = c.doFinal(mkCipher);
-
-        // first, the master key IV
-        int offset = 0;
-        int len = mkBlob[offset++];
-        IV = Arrays.copyOfRange(mkBlob, offset, offset + len);
-
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("IV: {}", Hex.encodeHexString(IV));
-        }
-
-        offset += len;
-        // then the master key itself
-        len = mkBlob[offset++];
-        byte[] mk = Arrays.copyOfRange(mkBlob, offset, offset + len);
-
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("MK: {}", Hex.encodeHexString(mk));
-        }
-
-        offset += len;
-        // and finally the master key checksum hash
-        len = mkBlob[offset++];
-        byte[] mkChecksum = Arrays.copyOfRange(mkBlob, offset, offset + len);
-
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("MK checksum: " + Hex.encodeHexString(mkChecksum));
-        }
-
-        // now validate the decrypted master key against the checksum
-        byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds);
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Calculated MK checksum: " + Hex.encodeHexString(calculatedCk));
-        }
-
-        if (Arrays.equals(calculatedCk, mkChecksum)) {
-          ivSpec = new IvParameterSpec(IV);
-          c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(mk, ALGORITHM), ivSpec);
-          // Only if all of the above worked properly will 'result' be assigned
-          baseStream = new CipherInputStream(rawInStream, c);
-        } else {
-          throw new IllegalStateException("Invalid password or master key checksum.");
-        }
-      }
+      InputStream baseStream = encrypted ? getCipherStream(password, rawInStream) : rawInStream;
 
       try (InputStream in = isCompressed ? new InflaterInputStream(baseStream) : baseStream) {
         try (FileOutputStream out = new FileOutputStream(filename)) {
@@ -155,7 +79,78 @@ public class AndroidBackup {
     }
   }
 
-  public static void packTar(String tarFilename, String backupFilename, String password) {
+  private InputStream getCipherStream(String password, InputStream rawInStream) throws IOException, DecoderException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
+    if ("".equals(password)) {
+      throw new IllegalArgumentException("Backup encrypted but password not specified");
+    }
+
+    String userSaltHex = readHeaderLine(rawInStream); // 5
+    byte[] userSalt = Hex.decodeHex(userSaltHex.toCharArray());
+    if (userSalt.length != PBKDF2_SALT_SIZE / 8) {
+      throw new IllegalArgumentException("Invalid salt length: " + userSalt.length);
+    }
+
+    String ckSaltHex = readHeaderLine(rawInStream); // 6
+    byte[] ckSalt = Hex.decodeHex(ckSaltHex.toCharArray());
+
+    int rounds = Integer.parseInt(readHeaderLine(rawInStream)); // 7
+    String userIvHex = readHeaderLine(rawInStream); // 8
+
+    String masterKeyBlobHex = readHeaderLine(rawInStream); // 9
+
+    // decrypt the master key blob
+    Cipher c = Cipher.getInstance(ENCRYPTION_MECHANISM);
+    SecretKey userKey = buildPasswordKey(password.toCharArray(), userSalt, rounds);
+    byte[] IV = Hex.decodeHex(userIvHex.toCharArray());
+    IvParameterSpec ivSpec = new IvParameterSpec(IV);
+    c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(userKey.getEncoded(), ALGORITHM), ivSpec);
+    byte[] mkCipher = Hex.decodeHex(masterKeyBlobHex.toCharArray());
+    byte[] mkBlob = c.doFinal(mkCipher);
+
+    // first, the master key IV
+    int offset = 0;
+    int len = mkBlob[offset++];
+    IV = Arrays.copyOfRange(mkBlob, offset, offset + len);
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("IV: {}", Hex.encodeHexString(IV));
+    }
+
+    offset += len;
+    // then the master key itself
+    len = mkBlob[offset++];
+    byte[] mk = Arrays.copyOfRange(mkBlob, offset, offset + len);
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("MK: {}", Hex.encodeHexString(mk));
+    }
+
+    offset += len;
+    // and finally the master key checksum hash
+    len = mkBlob[offset++];
+    byte[] mkChecksum = Arrays.copyOfRange(mkBlob, offset, offset + len);
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("MK checksum: " + Hex.encodeHexString(mkChecksum));
+    }
+
+    // now validate the decrypted master key against the checksum
+    byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Calculated MK checksum: " + Hex.encodeHexString(calculatedCk));
+    }
+
+    if (Arrays.equals(calculatedCk, mkChecksum)) {
+      ivSpec = new IvParameterSpec(IV);
+      c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(mk, ALGORITHM), ivSpec);
+      // Only if all of the above worked properly will 'result' be assigned
+      return new CipherInputStream(rawInStream, c);
+    } else {
+      throw new IllegalStateException("Invalid password or master key checksum.");
+    }
+  }
+
+  public void packTar(String tarFilename, String backupFilename, String password) {
     boolean encrypting = password != null && !"".equals(password);
 
     StringBuilder headerbuf = new StringBuilder(1024);
@@ -195,20 +190,20 @@ public class AndroidBackup {
     }
   }
 
-  private static void writeOut(FileInputStream in, OutputStream ofstream, StringBuilder headerbuf, OutputStream highLevelOut) throws IOException {
+  private void writeOut(FileInputStream in, OutputStream ofstream, StringBuilder headerbuf, OutputStream highLevelOut) throws IOException {
     byte[] header = headerbuf.toString().getBytes("UTF-8");
     ofstream.write(header);
     IOUtils.copy(in, highLevelOut);
   }
 
-  private static OutputStream getDeflateOutputStream(OutputStream finalOutput) {
+  private OutputStream getDeflateOutputStream(OutputStream finalOutput) {
     Deflater deflater = new Deflater(Deflater.BEST_COMPRESSION);
     // requires Java 7
     finalOutput = new DeflaterOutputStream(finalOutput, deflater, true);
     return finalOutput;
   }
 
-  private static OutputStream getEncryptedOutputStream(String password, StringBuilder headerbuf, FileOutputStream ofstream) throws Exception {
+  private OutputStream getEncryptedOutputStream(String password, StringBuilder headerbuf, FileOutputStream ofstream) throws Exception {
     OutputStream finalOutput;// User key will be used to encrypt the master key.
     byte[] newUserSalt = randomBytes(PBKDF2_SALT_SIZE);
     SecretKey userKey = buildPasswordKey(password.toCharArray(), newUserSalt, PBKDF2_HASH_ROUNDS);
@@ -227,7 +222,7 @@ public class AndroidBackup {
     return finalOutput;
   }
 
-  private static StringBuilder addAesBackupHeader(byte[] newUserSalt, SecretKey userKey, Cipher cipher, SecretKeySpec masterKeySpec) throws Exception {
+  private StringBuilder addAesBackupHeader(byte[] newUserSalt, SecretKey userKey, Cipher cipher, SecretKeySpec masterKeySpec) throws Exception {
     StringBuilder backupHeader = new StringBuilder();
 
     byte[] checksumSalt = randomBytes(PBKDF2_SALT_SIZE);
@@ -284,7 +279,7 @@ public class AndroidBackup {
     return backupHeader;
   }
 
-  private static String readHeaderLine(InputStream in) throws IOException {
+  private String readHeaderLine(InputStream in) throws IOException {
     int c;
     StringBuilder buffer = new StringBuilder(80);
     while ((c = in.read()) >= 0) {
@@ -296,7 +291,7 @@ public class AndroidBackup {
     return buffer.toString();
   }
 
-  private static byte[] makeKeyChecksum(byte[] pwBytes, byte[] salt, int rounds) {
+  private byte[] makeKeyChecksum(byte[] pwBytes, byte[] salt, int rounds) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("key bytes: " + Hex.encodeHexString(pwBytes));
       LOG.debug("salt bytes: " + Hex.encodeHexString(salt));
@@ -315,7 +310,7 @@ public class AndroidBackup {
     return checksum.getEncoded();
   }
 
-  private static SecretKey buildPasswordKey(char[] pwArray, byte[] salt, int rounds) {
+  private SecretKey buildPasswordKey(char[] pwArray, byte[] salt, int rounds) {
     // Original code from BackupManagerService
     // this produces different results when run with Sun/Oracale Java SE
     // which apparently treats password bytes as UTF-8 (16?)
@@ -347,13 +342,13 @@ public class AndroidBackup {
     return new SecretKeySpec(params.getKey(), ALGORITHM);
   }
 
-  private static byte[] randomBytes(int bits) {
+  private byte[] randomBytes(int bits) {
     byte[] array = new byte[bits / 8];
     random.nextBytes(array);
     return array;
   }
 
-  public static void setCompressing(boolean compressing) {
-    AndroidBackup.compressOutput = compressing;
+  public void setCompressing(boolean compressing) {
+    this.compressOutput = compressing;
   }
 }

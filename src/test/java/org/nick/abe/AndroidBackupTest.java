@@ -25,8 +25,7 @@ public class AndroidBackupTest {
   public void shouldPackTarUnencryptedCompressing() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
 
-    AndroidBackup.setCompressing(true);
-    packTar(TAR, destinationFile, "");
+    new AndroidBackup().packTar(AndroidBackupTest.TAR.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
 
     assertThat(destinationFile).hasContentEqualTo(UNENCRYPTED_BACKUP);
   }
@@ -35,8 +34,9 @@ public class AndroidBackupTest {
   public void shouldPackTarUnencryptedNotCompressing() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
 
-    AndroidBackup.setCompressing(false);
-    packTar(TAR, destinationFile, "");
+    AndroidBackup backup = new AndroidBackup();
+    backup.setCompressing(false);
+    backup.packTar(AndroidBackupTest.TAR.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
 
     assertThat(destinationFile).hasContentEqualTo(UNENCRYPTED_UNCOMPRESSED_BACKUP);
   }
@@ -46,9 +46,9 @@ public class AndroidBackupTest {
     File destinationFile = File.createTempFile("test", "backup");
     File extractedTemp = File.createTempFile("extracted", "tar");
 
-    AndroidBackup.setCompressing(true);
-    packTar(TAR, destinationFile, PASSWORD);
-    AndroidBackup.extractAsTar(destinationFile.getAbsolutePath(), extractedTemp.getAbsolutePath(), PASSWORD);
+    AndroidBackup backup = new AndroidBackup();
+    backup.packTar(AndroidBackupTest.TAR.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
+    backup.extractAsTar(destinationFile.getAbsolutePath(), extractedTemp.getAbsolutePath(), PASSWORD);
 
     assertThat(extractedTemp).hasContentEqualTo(TAR);
   }
@@ -57,8 +57,8 @@ public class AndroidBackupTest {
   public void shouldExtractAsTarUnencrypted() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
 
-    AndroidBackup.setCompressing(true);
-    AndroidBackup.extractAsTar(UNENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
+    AndroidBackup backup = new AndroidBackup();
+    backup.extractAsTar(UNENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
 
     assertThat(destinationFile).hasContentEqualTo(TAR);
   }
@@ -67,8 +67,7 @@ public class AndroidBackupTest {
   public void shouldExtractAsTarEncrypted() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
 
-    AndroidBackup.setCompressing(true);
-    AndroidBackup.extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
+    new AndroidBackup().extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
 
     assertThat(destinationFile).hasContentEqualTo(TAR);
   }
@@ -78,7 +77,7 @@ public class AndroidBackupTest {
     File destinationFile = File.createTempFile("foo", "bar");
 
     try {
-      AndroidBackup.extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
+      new AndroidBackup().extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessage("Backup encrypted but password not specified");
     }
@@ -89,7 +88,7 @@ public class AndroidBackupTest {
     File destinationFile = File.createTempFile("foo", "bar");
 
     try {
-      AndroidBackup.extractAsTar(INVALID_UNENCRYPTED_UNCOMPRESSED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
+      new AndroidBackup().extractAsTar(INVALID_UNENCRYPTED_UNCOMPRESSED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessage("Don't know how to process version 2");
     }
@@ -99,8 +98,9 @@ public class AndroidBackupTest {
   public void shouldExtractAsTarUnencryptedUncompressed() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
 
-    AndroidBackup.setCompressing(false);
-    AndroidBackup.extractAsTar(UNENCRYPTED_UNCOMPRESSED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
+    AndroidBackup backup = new AndroidBackup();
+    backup.setCompressing(false);
+    backup.extractAsTar(UNENCRYPTED_UNCOMPRESSED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
 
     assertThat(destinationFile).hasContentEqualTo(TAR);
   }
@@ -109,28 +109,24 @@ public class AndroidBackupTest {
   public void shouldFailOnExtractAsTarEncryptedWithPasswordIsNull() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
 
-    AndroidBackup.extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), null);
+    new AndroidBackup().extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), null);
   }
 
   @Test
   public void shouldFailOnPackEncryptedWithPasswordIsNull() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
     try {
-      packTar(TAR, destinationFile, null);
+      new AndroidBackup().packTar(AndroidBackupTest.TAR.getAbsolutePath(), destinationFile.getAbsolutePath(), null);
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessage("Backup encrypted but password not specified");
     }
-  }
-
-  private void packTar(File tar, File destination, String password) {
-    AndroidBackup.packTar(AndroidBackupTest.TAR.getAbsolutePath(), destination.getAbsolutePath(), password);
   }
 
   @Test
   public void shouldFailOnExtractAsTarEncryptedWithPasswordIsEmpty() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
     try {
-      AndroidBackup.extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
+      new AndroidBackup().extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "");
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessage("Backup encrypted but password not specified");
     }
@@ -140,7 +136,7 @@ public class AndroidBackupTest {
   public void shouldFailOnExtractAsTarEncryptedWithInvalidPassword() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
     try {
-      AndroidBackup.extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "x");
+      new AndroidBackup().extractAsTar(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), "x");
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessage("Given final block not properly padded");
     }
@@ -150,7 +146,7 @@ public class AndroidBackupTest {
   public void shouldFailOnExtractAsTarEncryptedWithInvalidHeader() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
     try {
-      AndroidBackup.extractAsTar(INVALID_ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
+      new AndroidBackup().extractAsTar(INVALID_ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessage("Invalid salt length: 65");
     }
@@ -160,7 +156,7 @@ public class AndroidBackupTest {
   public void shouldFailOnExtractAsTarEncryptedWithInvalidHeader2() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
     try {
-      AndroidBackup.extractAsTar(INVALID_ENCRYPTED_BACKUP2.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
+      new AndroidBackup().extractAsTar(INVALID_ENCRYPTED_BACKUP2.getAbsolutePath(), destinationFile.getAbsolutePath(), PASSWORD);
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessage("Invalid password or master key checksum.");
     }
@@ -170,7 +166,7 @@ public class AndroidBackupTest {
   public void shouldFailReadingMissingTar() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
     try {
-      AndroidBackup.extractAsTar("missing", destinationFile.getAbsolutePath(), "");
+      new AndroidBackup().extractAsTar("missing", destinationFile.getAbsolutePath(), "");
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessageStartingWith("missing ");
     }
@@ -180,7 +176,7 @@ public class AndroidBackupTest {
   public void shouldFailReadingMissingBackupFile() throws IOException {
     File destinationFile = File.createTempFile("foo", "bar");
     try {
-      AndroidBackup.packTar("missing", destinationFile.getAbsolutePath(), "");
+      new AndroidBackup().packTar("missing", destinationFile.getAbsolutePath(), "");
     } catch (Exception e) {
       assertThat(e.getCause()).hasMessageStartingWith("missing ");
     }
