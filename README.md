@@ -6,27 +6,25 @@ Largely based on BackupManagerService.java from AOSP.
 
 Steps:
 
-#
-create abe.jar with mvn package
+  * checkout project ```git clone ...```
 
+  * create abe.jar with ```mvn package```
 
+  * use see below
 
-```java -jar abe.jar pack|unpack [parameters as below]```
-
+java -jar abe.jar is written as _abe_
 
 ```
-   Android backup extractor
+Android backup extractor
 Usage:
-	unpack:
-		abe unpack <backup.ab> <backup.tar> [password]
-	pack:
-		abe pack <backup.tar> <backup.ab> [password]
+	abe unpack <backup.ab> <backup.tar> [password]
+	abe pack <backup.tar> <backup.ab> [password]
 
 	tips:
-		in case of <backup.tar> is - stdin will be read from/written to stdout
-		in case of <backup.ab>  is - stdin will be read from/written to stdout
+	   in case of <backup.tar> is - stdin will be read from/written to stdout
+	   in case of <backup.ab>  is - stdin will be read from/written to stdout
 
-		 cat x.tar | ab pack - - > x.ab
+	   cat x.tar | abe pack - - > x.ab
 ```
 
 
