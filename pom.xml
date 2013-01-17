@@ -41,6 +41,9 @@
           <descriptorRefs>
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
+          <finalName>abe</finalName>
+          <appendAssemblyId>false</appendAssemblyId>
+          <outputDirectory>${project.basedir}</outputDirectory>
         </configuration>
         <executions>
           <execution>
