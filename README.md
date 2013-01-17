@@ -26,7 +26,9 @@ Usage:
 
 	   cat x.tar | abe pack - - > x.ab
 ```
+Simple example:
 
+```cat src/test/resources/uncompressed.backup | ./abe unpack - - | tar -t```
 
 More details about the backup format and the tool implementation in the
 associated blog post:
