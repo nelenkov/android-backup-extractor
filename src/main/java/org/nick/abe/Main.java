@@ -22,14 +22,14 @@ public class Main {
   protected void run(String[] args) {
 
     if (args.length < 3) {
-      exitWithErrorMsg("less than 3 arguments");
+      exitWithErrorMsg("less than 3 arguments :", args);
     } else if (args.length > 4) {
-      exitWithErrorMsg("more than 4 arguments");
+      exitWithErrorMsg("more than 4 arguments", args);
     } else {
 
       String mode = args[0];
       if (!"pack".equals(mode) && !"unpack".equals(mode)) {
-        exitWithErrorMsg("need unpack or pack as first argument");
+        exitWithErrorMsg("need unpack or pack as first argument", args);
       } else {
 
         boolean unpack = "unpack".equals(mode);
@@ -44,6 +44,16 @@ public class Main {
         }
       }
     }
+  }
+
+  private String argsAsString(String[] args) {
+    StringBuilder builder = new StringBuilder();
+    for (String arg : args) {
+      builder.append(arg.trim());
+      builder.append(" ");
+    }
+
+    return builder.toString().trim();
   }
 
   private void unpack(String backupFilename, String tarFilename, String password) {
@@ -92,8 +102,9 @@ public class Main {
     }
   }
 
-  private void exitWithErrorMsg(String msg) {
+  private void exitWithErrorMsg(String msg, String[] args) {
     LOG.debug(msg);
+    System.out.println("ERROR - " + msg + " " + argsAsString(args));
     usage();
     LOG.debug("exiting");
     if (!isTesting) {
