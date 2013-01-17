@@ -102,19 +102,21 @@ public class Main {
   }
 
   protected void usage() {
-    PrintStream out = System.out;
-    out.println("Android backup extractor");
-    out.println("Usage:");
-    out.println("\tunpack:");
-    out.println("\t\tabe unpack <backup.ab> <backup.tar> [password]");
-    out.println("\tpack:");
-    out.println("\t\tabe pack <backup.tar> <backup.ab> [password]");
-    out.println("");
-    out.println("\ttips:");
-    out.println("\t\tin case of <backup.tar> is - stdin will be read from/written to stdout");
-    out.println("\t\tin case of <backup.ab>  is - stdin will be read from/written to stdout");
-    out.println();
-    out.println("\t\t cat x.tar | ab pack - - > x.ab");
+    if (!isTesting) {
+      PrintStream out = System.out;
+      out.println("Android backup extractor");
+      out.println("Usage:");
+      out.println("\tunpack:");
+      out.println("\t\tabe unpack <backup.ab> <backup.tar> [password]");
+      out.println("\tpack:");
+      out.println("\t\tabe pack <backup.tar> <backup.ab> [password]");
+      out.println("");
+      out.println("\ttips:");
+      out.println("\t\tin case of <backup.tar> is - stdin will be read from/written to stdout");
+      out.println("\t\tin case of <backup.ab>  is - stdin will be read from/written to stdout");
+      out.println();
+      out.println("\t\t cat x.tar | ab pack - - > x.ab");
+    }
   }
 
   protected void setTesting(boolean testing) {
