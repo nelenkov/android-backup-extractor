@@ -17,12 +17,6 @@
   </properties>
 
   <build>
-    <resources>
-      <resource>
-        <directory>bin</directory>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -37,18 +31,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>appassembler-maven-plugin</artifactId>
-        <configuration>
-          <programs>
-            <program>
-              <mainClass>org.nick.abe.Main</mainClass>
-              <name>abe</name>
-            </program>
-          </programs>
-        </configuration>
-      </plugin>
-      <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
           <archive>
@@ -60,6 +42,14 @@
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
         </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
@@ -86,27 +76,27 @@
           </execution>
           <execution>
             <id>report</id>
-            <!--<phase>prepare-package</phase>-->
+            <phase>verify</phase>
             <goals>
               <goal>report</goal>
             </goals>
           </execution>
-          <!--<execution>-->
-          <!--<id>check</id>-->
-          <!--<goals>-->
-          <!--<goal>check</goal>-->
-          <!--</goals>-->
-          <!--<configuration>-->
-          <!--<check>-->
-          <!--<classRatio>100</classRatio>-->
-          <!--<instructionRatio>90</instructionRatio>-->
-          <!--<methodRatio>95</methodRatio>-->
-          <!--<branchRatio>85</branchRatio>-->
-          <!--<complexityRatio>85</complexityRatio>-->
-          <!--<lineRatio>90</lineRatio>-->
-          <!--</check>-->
-          <!--</configuration>-->
-          <!--</execution>-->
+          <execution>
+            <id>check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <check>
+                <classRatio>100</classRatio>
+                <instructionRatio>90</instructionRatio>
+                <methodRatio>95</methodRatio>
+                <branchRatio>85</branchRatio>
+                <complexityRatio>85</complexityRatio>
+                <lineRatio>90</lineRatio>
+              </check>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>
