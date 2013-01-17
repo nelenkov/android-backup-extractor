@@ -106,16 +106,14 @@ public class Main {
       PrintStream out = System.out;
       out.println("Android backup extractor");
       out.println("Usage:");
-      out.println("\tunpack:");
-      out.println("\t\tabe unpack <backup.ab> <backup.tar> [password]");
-      out.println("\tpack:");
-      out.println("\t\tabe pack <backup.tar> <backup.ab> [password]");
+      out.println("\tabe unpack <backup.ab> <backup.tar> [password]");
+      out.println("\tabe pack <backup.tar> <backup.ab> [password]");
       out.println("");
       out.println("\ttips:");
-      out.println("\t\tin case of <backup.tar> is - stdin will be read from/written to stdout");
-      out.println("\t\tin case of <backup.ab>  is - stdin will be read from/written to stdout");
+      out.println("\t  in case of <backup.tar> is - stdin will be read from/written to stdout");
+      out.println("\t  in case of <backup.ab>  is - stdin will be read from/written to stdout");
       out.println();
-      out.println("\t\t cat x.tar | ab pack - - > x.ab");
+      out.println("\t cat x.tar | abe pack - - > x.ab");
     }
   }
 
