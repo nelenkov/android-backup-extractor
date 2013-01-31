@@ -1,7 +1,7 @@
 Android backup extractor
 ========================
 
-Utility to extract and repack Android backups created with adb backup (ICS+). 
+Utility to extract and repack Android backups created with ```adb backup``` (ICS+). 
 Largely based on BackupManagerService.java from AOSP. 
 
 Usage: 
