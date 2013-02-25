@@ -12,7 +12,7 @@
 			<fileset dir="build" includes="**/*" />
 		</delete>
 		<mkdir dir="build" />
-		<javac srcdir="src" destdir="build" classpath="lib/bcprov-jdk15on-147.jar" debug="true" includeantruntime="false" encoding="UTF-8" source="1.7" />
+		<javac srcdir="src" destdir="build" classpath="lib/bcprov-jdk15on-148.jar" debug="true" includeantruntime="false" encoding="UTF-8" source="1.7" />
 	</target>
 
 	<target name="jar" depends="build" description="Create a standalone-jar (no external dependency)">
@@ -23,7 +23,7 @@
 			</manifest>
 			<fileset dir="build" />
 			<!-- Include BouncyCastle JAR -->
-			<zipfileset src="lib/bcprov-jdk15on-147.jar" includes="org/**" />
+			<zipfileset src="lib/bcprov-jdk15on-148.jar" includes="org/**" />
 		</jar>
 	</target>
 </project>
