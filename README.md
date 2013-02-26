@@ -6,6 +6,11 @@ Largely based on BackupManagerService.java from AOSP.
 
 Usage: 
 
+Download the latest version of Bouncy Castle Provider jar 
+(```bcprov-jdk15on-148.jar```) from here:
+
+http://www.bouncycastle.org/latest_releases.html
+
 Drop the latest Bouncy Castle jar in lib/, import in Eclipse and adjust 
 build path if necessary. Use the abe.sh script to start the utility. 
 Syntax: 
