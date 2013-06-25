@@ -1,3 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
-java -jar abe.jar $@
+dir=$(dirname $0)
+java -jar $dir/abe.jar $@
