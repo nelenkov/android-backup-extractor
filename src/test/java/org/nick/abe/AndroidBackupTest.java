@@ -111,7 +111,7 @@ public class AndroidBackupTest {
     try {
       new AndroidBackup().extractAsTarFromFileToFile(ENCRYPTED_BACKUP.getAbsolutePath(), destinationFile.getAbsolutePath(), null);
     } catch (Exception e) {
-      assertThat(e.getCause()).isExactlyInstanceOf(NullPointerException.class);
+      assertThat(e.getCause()).isExactlyInstanceOf(IllegalArgumentException.class);
     }
   }
 

@@ -121,8 +121,7 @@ public class AndroidBackup {
 
   private InputStream getCipherStream(String password, InputStream rawInStream) throws IOException, DecoderException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, IllegalBlockSizeException, BadPaddingException {
 
-    checkNotNull(password);
-    if ("".equals(password)) {
+    if (null == password || "".equals(password)) {
       throw new IllegalArgumentException("Backup encrypted but password not specified");
     }
 
