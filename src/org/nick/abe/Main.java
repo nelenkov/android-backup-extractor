@@ -17,7 +17,7 @@ public class Main {
         }
 
         String mode = args[0];
-        if (!"pack".equals(mode) && !"unpack".equals(mode)) {
+        if (!"pack".equals(mode) && !"unpack".equals(mode) && !"pack-kk".equals(mode)) {
             usage();
 
             System.exit(1);
@@ -34,17 +34,20 @@ public class Main {
         if (unpack) {
             AndroidBackup.extractAsTar(backupFilename, tarFilename, password);
         } else {
-            AndroidBackup.packTar(tarFilename, backupFilename, password);
+            boolean isKitKat = "pack-kk".equals(mode);
+            AndroidBackup.packTar(tarFilename, backupFilename, password, isKitKat);
         }
+
     }
 
     private static void usage() {
-        System.out.println("Android backup extractor");
         System.out.println("Usage:");
         System.out
-                .println("\tunpack:\tabe unpack <backup.ab> <backup.tar> [password]");
+                .println("  unpack:\tabe unpack\t<backup.ab> <backup.tar> [password]");
         System.out
-                .println("\tpack:\tabe pack <backup.tar> <backup.ab> [password]");
+                .println("  pack:\t\tabe pack\t<backup.tar> <backup.ab> [password]");
+        System.out
+                .println("  pack for 4.4:\tabe pack-kk\t<backup.tar> <backup.ab> [password]");
     }
 
 }

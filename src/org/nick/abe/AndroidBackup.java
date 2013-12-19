@@ -1,3 +1,4 @@
+
 package org.nick.abe;
 
 import java.io.ByteArrayOutputStream;
@@ -100,7 +101,8 @@ public class AndroidBackup {
 
                 // decrypt the master key blob
                 Cipher c = Cipher.getInstance(ENCRYPTION_MECHANISM);
-                SecretKey userKey = buildPasswordKey(password, userSalt, rounds);
+                // XXX we don't support non-ASCII passwords
+                SecretKey userKey = buildPasswordKey(password, userSalt, rounds, false);
                 byte[] IV = hexToByteArray(userIvHex);
                 IvParameterSpec ivSpec = new IvParameterSpec(IV);
                 c.init(Cipher.DECRYPT_MODE,
@@ -132,14 +134,24 @@ public class AndroidBackup {
                 }
 
                 // now validate the decrypted master key against the checksum
-                byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds);
-                System.out.println("Calculated MK checksum: "
+                // pre-4.4
+                byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, false);
+                System.out.println("Calculated MK checksum (pre-4.4): "
                         + toHex(calculatedCk));
+                if (!Arrays.equals(calculatedCk, mkChecksum)) {
+                    System.out.println("pre-4.4 MK checksum does not match");
+                    // try 4.4 variant
+                    calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, true);
+                    System.out.println("Calculated MK checksum (4.4+): "
+                            + toHex(calculatedCk));
+                }
+
                 if (Arrays.equals(calculatedCk, mkChecksum)) {
                     ivSpec = new IvParameterSpec(IV);
                     c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(mk, "AES"),
                             ivSpec);
-                    // Only if all of the above worked properly will 'result' be assigned
+                    // Only if all of the above worked properly will 'result' be
+                    // assigned
                     cipherStream = new CipherInputStream(rawInStream, c);
                 }
             }
@@ -182,7 +194,7 @@ public class AndroidBackup {
     }
 
     public static void packTar(String tarFilename, String backupFilename,
-            String password) {
+            String password, boolean isKitKat) {
         boolean encrypting = password != null && !"".equals(password);
         boolean compressing = true;
 
@@ -192,16 +204,16 @@ public class AndroidBackup {
         headerbuf.append(BACKUP_FILE_VERSION); // integer, no trailing \n
         headerbuf.append(compressing ? "\n1\n" : "\n0\n");
 
-
         OutputStream out = null;
         try {
             FileInputStream in = new FileInputStream(tarFilename);
             FileOutputStream ofstream = new FileOutputStream(backupFilename);
             OutputStream finalOutput = ofstream;
-            // Set up the encryption stage if appropriate, and emit the correct header
+            // Set up the encryption stage if appropriate, and emit the correct
+            // header
             if (encrypting) {
                 finalOutput = emitAesBackupHeader(headerbuf, finalOutput,
-                        password);
+                        password, isKitKat);
             } else {
                 headerbuf.append("none\n");
             }
@@ -209,7 +221,8 @@ public class AndroidBackup {
             byte[] header = headerbuf.toString().getBytes("UTF-8");
             ofstream.write(header);
 
-            // Set up the compression stage feeding into the encryption stage (if any)
+            // Set up the compression stage feeding into the encryption stage
+            // (if any)
             if (compressing) {
                 Deflater deflater = new Deflater(Deflater.BEST_COMPRESSION);
                 // requires Java 7
@@ -250,11 +263,11 @@ public class AndroidBackup {
     }
 
     private static OutputStream emitAesBackupHeader(StringBuilder headerbuf,
-            OutputStream ofstream, String encryptionPassword) throws Exception {
+            OutputStream ofstream, String encryptionPassword, boolean useUtf8) throws Exception {
         // User key will be used to encrypt the master key.
         byte[] newUserSalt = randomBytes(PBKDF2_SALT_SIZE);
         SecretKey userKey = buildPasswordKey(encryptionPassword, newUserSalt,
-                PBKDF2_HASH_ROUNDS);
+                PBKDF2_HASH_ROUNDS, useUtf8);
 
         // the master key is random for each backup
         byte[] masterPw = new byte[MASTER_KEY_SIZE / 8];
@@ -288,20 +301,21 @@ public class AndroidBackup {
         headerbuf.append(toHex(IV));
         headerbuf.append('\n');
 
-        // line 9: master IV + key blob, encrypted by the user key [hex].  Blob format:
-        //    [byte] IV length = Niv
-        //    [array of Niv bytes] IV itself
-        //    [byte] master key length = Nmk
-        //    [array of Nmk bytes] master key itself
-        //    [byte] MK checksum hash length = Nck
-        //    [array of Nck bytes] master key checksum hash
+        // line 9: master IV + key blob, encrypted by the user key [hex]. Blob
+        // format:
+        // [byte] IV length = Niv
+        // [array of Niv bytes] IV itself
+        // [byte] master key length = Nmk
+        // [array of Nmk bytes] master key itself
+        // [byte] MK checksum hash length = Nck
+        // [array of Nck bytes] master key checksum hash
         //
         // The checksum is the (master key + checksum salt), run through the
         // stated number of PBKDF2 rounds
         IV = c.getIV();
         byte[] mk = masterKeySpec.getEncoded();
         byte[] checksum = makeKeyChecksum(masterKeySpec.getEncoded(),
-                checksumSalt, PBKDF2_HASH_ROUNDS);
+                checksumSalt, PBKDF2_HASH_ROUNDS, useUtf8);
 
         ByteArrayOutputStream blob = new ByteArrayOutputStream(IV.length
                 + mk.length + checksum.length + 3);
@@ -320,7 +334,6 @@ public class AndroidBackup {
         return finalOutput;
     }
 
-
     public static String toHex(byte[] bytes) {
         StringBuffer buff = new StringBuffer();
         for (byte b : bytes) {
@@ -329,7 +342,6 @@ public class AndroidBackup {
 
         return buff.toString();
     }
-
 
     private static String readHeaderLine(InputStream in) throws IOException {
         int c;
@@ -357,7 +369,7 @@ public class AndroidBackup {
         return result;
     }
 
-    public static byte[] makeKeyChecksum(byte[] pwBytes, byte[] salt, int rounds) {
+    public static byte[] makeKeyChecksum(byte[] pwBytes, byte[] salt, int rounds, boolean useUtf8) {
         if (DEBUG) {
             System.out.println("key bytes: " + toHex(pwBytes));
             System.out.println("salt bytes: " + toHex(salt));
@@ -371,7 +383,7 @@ public class AndroidBackup {
             System.out.printf("MK as string: [%s]\n", new String(mkAsChar));
         }
 
-        Key checksum = buildCharArrayKey(mkAsChar, salt, rounds);
+        Key checksum = buildCharArrayKey(mkAsChar, salt, rounds, useUtf8);
         if (DEBUG) {
             System.out.println("Key format: " + checksum.getFormat());
         }
@@ -379,47 +391,47 @@ public class AndroidBackup {
     }
 
     public static SecretKey buildCharArrayKey(char[] pwArray, byte[] salt,
-            int rounds) {
+            int rounds, boolean useUtf8) {
         // Original code from BackupManagerService
         // this produces different results when run with Sun/Oracale Java SE
         // which apparently treats password bytes as UTF-8 (16?)
         // (the encoding is left unspecified in PKCS#5)
 
-        //        try {
-        //            SecretKeyFactory keyFactory = SecretKeyFactory
-        //                    .getInstance("PBKDF2WithHmacSHA1");
-        //            KeySpec ks = new PBEKeySpec(pwArray, salt, rounds, PBKDF2_KEY_SIZE);
-        //            return keyFactory.generateSecret(ks);
-        //        } catch (InvalidKeySpecException e) {
-        //            throw new RuntimeException(e);
-        //        } catch (NoSuchAlgorithmException e) {
-        //            throw new RuntimeException(e);
-        //        } catch (NoSuchProviderException e) {
-        //            throw new RuntimeException(e);
-        //        }
-        //        return null;
+        // try {
+        // SecretKeyFactory keyFactory = SecretKeyFactory
+        // .getInstance("PBKDF2WithHmacSHA1");
+        // KeySpec ks = new PBEKeySpec(pwArray, salt, rounds, PBKDF2_KEY_SIZE);
+        // return keyFactory.generateSecret(ks);
+        // } catch (InvalidKeySpecException e) {
+        // throw new RuntimeException(e);
+        // } catch (NoSuchAlgorithmException e) {
+        // throw new RuntimeException(e);
+        // } catch (NoSuchProviderException e) {
+        // throw new RuntimeException(e);
+        // }
+        // return null;
 
-        return androidPBKDF2(pwArray, salt, rounds);
+        return androidPBKDF2(pwArray, salt, rounds, useUtf8);
     }
 
     public static SecretKey androidPBKDF2(char[] pwArray, byte[] salt,
-            int rounds) {
+            int rounds, boolean useUtf8) {
         PBEParametersGenerator generator = new PKCS5S2ParametersGenerator();
-        generator.init(
-                // PBEParametersGenerator.PKCS5PasswordToUTF8Bytes(pwArray),
-                // Android treats password bytes as ASCII, which is obviously 
-                // not the case when an AES key is used as a 'password'. 
-                // Use the same method for compatibility.
-                PBEParametersGenerator.PKCS5PasswordToBytes(pwArray), salt,
-                rounds);
+        // Android treats password bytes as ASCII, which is obviously
+        // not the case when an AES key is used as a 'password'.
+        // Use the same method for compatibility.
+        // Android 4.4 however treats use all char bytes
+        byte[] pwBytes = useUtf8 ? PBEParametersGenerator.PKCS5PasswordToUTF8Bytes(pwArray)
+                : PBEParametersGenerator.PKCS5PasswordToBytes(pwArray);
+        generator.init(pwBytes, salt, rounds);
         KeyParameter params = (KeyParameter) generator
                 .generateDerivedParameters(PBKDF2_KEY_SIZE);
 
         return new SecretKeySpec(params.getKey(), "AES");
     }
 
-    private static SecretKey buildPasswordKey(String pw, byte[] salt, int rounds) {
-        return buildCharArrayKey(pw.toCharArray(), salt, rounds);
+    private static SecretKey buildPasswordKey(String pw, byte[] salt, int rounds, boolean useUtf8) {
+        return buildCharArrayKey(pw.toCharArray(), salt, rounds, useUtf8);
     }
 
 }
