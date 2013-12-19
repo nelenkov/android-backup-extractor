@@ -420,7 +420,9 @@ public class AndroidBackup {
         // Android treats password bytes as ASCII, which is obviously
         // not the case when an AES key is used as a 'password'.
         // Use the same method for compatibility.
-        // Android 4.4 however treats use all char bytes
+
+        // Android 4.4 however uses all char bytes
+        // useUtf8 needs to be true for KitKat
         byte[] pwBytes = useUtf8 ? PBEParametersGenerator.PKCS5PasswordToUTF8Bytes(pwArray)
                 : PBEParametersGenerator.PKCS5PasswordToBytes(pwArray);
         generator.init(pwBytes, salt, rounds);
