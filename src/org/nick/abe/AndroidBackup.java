@@ -32,6 +32,7 @@ public class AndroidBackup {
     private static final int BACKUP_MANIFEST_VERSION = 1;
     private static final String BACKUP_FILE_HEADER_MAGIC = "ANDROID BACKUP\n";
     private static final int BACKUP_FILE_VERSION = 1;
+    private static final int BACKUP_FILE_VERSION_2 = 2;
 
     private static final String ENCRYPTION_MECHANISM = "AES/CBC/PKCS5Padding";
     private static final int PBKDF2_HASH_ROUNDS = 10000;
@@ -40,7 +41,7 @@ public class AndroidBackup {
     private static final int PBKDF2_SALT_SIZE = 512; // bits
     private static final String ENCRYPTION_ALGORITHM_NAME = "AES-256";
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private static final SecureRandom random = new SecureRandom();
 
@@ -57,13 +58,14 @@ public class AndroidBackup {
             if (DEBUG) {
                 System.out.println("Magic: " + magic);
             }
-            String version = readHeaderLine(rawInStream); // 2
+            String versionStr = readHeaderLine(rawInStream); // 2
             if (DEBUG) {
-                System.out.println("Version: " + version);
+                System.out.println("Version: " + versionStr);
             }
-            if (BACKUP_FILE_VERSION != Integer.parseInt(version)) {
+            int version = Integer.parseInt(versionStr);
+            if (BACKUP_FILE_VERSION != version && BACKUP_FILE_VERSION_2 != version) {
                 throw new IllegalArgumentException(
-                        "Don't know how to process version " + version);
+                        "Don't know how to process version " + versionStr);
             }
 
             String compressed = readHeaderLine(rawInStream); // 3
@@ -134,16 +136,15 @@ public class AndroidBackup {
                 }
 
                 // now validate the decrypted master key against the checksum
-                // pre-4.4
-                byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, false);
-                System.out.println("Calculated MK checksum (pre-4.4): "
-                        + toHex(calculatedCk));
+                // first try the algorithm matching the archive version
+                boolean useUtf = version == BACKUP_FILE_VERSION_2;
+                byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, useUtf);
+                System.out.printf("Calculated MK checksum (use UTF-8: %s): %s\n", useUtf, toHex(calculatedCk));
                 if (!Arrays.equals(calculatedCk, mkChecksum)) {
-                    System.out.println("pre-4.4 MK checksum does not match");
-                    // try 4.4 variant
-                    calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, true);
-                    System.out.println("Calculated MK checksum (4.4+): "
-                            + toHex(calculatedCk));
+                    System.out.println("Checksum does not match.");
+                    // try the reverse
+                    calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, !useUtf);
+                    System.out.printf("Calculated MK checksum (use UTF-8: %s): %s\n", useUtf, toHex(calculatedCk));
                 }
 
                 if (Arrays.equals(calculatedCk, mkChecksum)) {
@@ -173,10 +174,12 @@ public class AndroidBackup {
                 while ((read = in.read(buff)) > 0) {
                     out.write(buff, 0, read);
                     totalRead += read;
-                    if (totalRead % 100 * 1024 == 0) {
+                    if (DEBUG && (totalRead % 100 * 1024 == 0)) {
                         System.out.printf("%d bytes read\n", totalRead);
                     }
                 }
+                System.out.printf("%d bytes written to %s.\n", 
+                        totalRead, filename);
 
             } finally {
                 if (in != null) {
@@ -201,7 +204,8 @@ public class AndroidBackup {
         StringBuilder headerbuf = new StringBuilder(1024);
 
         headerbuf.append(BACKUP_FILE_HEADER_MAGIC);
-        headerbuf.append(BACKUP_FILE_VERSION); // integer, no trailing \n
+        // integer, no trailing \n
+        headerbuf.append(isKitKat ? BACKUP_FILE_VERSION_2 : BACKUP_FILE_VERSION);
         headerbuf.append(compressing ? "\n1\n" : "\n0\n");
 
         OutputStream out = null;
@@ -238,10 +242,12 @@ public class AndroidBackup {
             while ((read = in.read(buff)) > 0) {
                 out.write(buff, 0, read);
                 totalRead += read;
-                if (totalRead % 100 * 1024 == 0) {
+                if (DEBUG && (totalRead % 100 * 1024 == 0)) {
                     System.out.printf("%d bytes written\n", totalRead);
                 }
             }
+            System.out.printf("%d bytes written to %s.\n", totalRead,
+                    backupFilename);
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
