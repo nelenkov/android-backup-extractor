@@ -3,6 +3,7 @@
 
 	<property name="jar.filename" value="abe.jar" />
 	<property name="main.class" value="org.nick.abe.Main" />
+    <property name="bcprov.jar" value="lib/bcprov-jdk15on-150.jar" />
 
 
 	<target name="all" depends="build,jar" />
@@ -12,7 +13,7 @@
 			<fileset dir="build" includes="**/*" />
 		</delete>
 		<mkdir dir="build" />
-		<javac srcdir="src" destdir="build" classpath="lib/bcprov-jdk15on-148.jar" debug="true" includeantruntime="false" encoding="UTF-8" source="1.7" />
+        <javac srcdir="src" destdir="build" classpath="${bcprov.jar}" debug="true" includeantruntime="false" encoding="UTF-8" source="1.7" />
 	</target>
 
 	<target name="jar" depends="build" description="Create a standalone-jar (no external dependency)">
@@ -23,7 +24,7 @@
 			</manifest>
 			<fileset dir="build" />
 			<!-- Include BouncyCastle JAR -->
-			<zipfileset src="lib/bcprov-jdk15on-148.jar" includes="org/**" />
+            <zipfileset src="${bcprov.jar}" includes="org/**" />
 		</jar>
 	</target>
 </project>
