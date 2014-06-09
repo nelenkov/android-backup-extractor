@@ -3,7 +3,7 @@
 
 	<property name="jar.filename" value="abe.jar" />
 	<property name="main.class" value="org.nick.abe.Main" />
-    <property name="bcprov.jar" value="lib/bcprov-jdk15on-150.jar" />
+	<property name="bcprov.jar" value="lib/bcprov-jdk15on-150.jar" />
 
 
 	<target name="all" depends="build,jar" />
