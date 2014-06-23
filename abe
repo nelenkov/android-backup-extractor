@@ -1,8 +1,26 @@
 #!/bin/sh
 
+command -v cygpath >/dev/null 2>&1
+on_cygwin=$(( $? == 0 ? 1 : 0 ))
+
+# below, we use non-environment variables to avoid implicitly updating the
+# environment with UNIX versions of paths.
+
+if [ "$on_cygwin" = 1 ] && [ "$JAVA" ]; then
+	java=$(cygpath --unix "$JAVA")
+else
+	java=$JAVA
+fi
+
+if [ "$on_cygwin" = 1 ] && [ "$JAVA_HOME" ]; then
+	java_home=$(cygpath --unix "$JAVA_HOME")
+else
+	java_home=$JAVA_HOME
+fi
+
 # honor JAVA environment variable if set; if not, use JAVA_HOME (if it's set);
 # if not, fall back to the old hardcoded default.
-: "${JAVA:=${JAVA_HOME:-/usr/local/jdk1.7.0_51}/bin/java}"
+: "${java:=${java_home:-/usr/local/jdk1.7.0_51}/bin/java}"
 
 # Follow symlinks, if we have readlink available; this will allow a symlink to
 # the real wrapper script's location to be installed somewhere on the PATH (ie.
@@ -37,12 +55,24 @@ done
 	exit 1
 }
 
-[ -e "$JAVA" ] || {
-	echo "ERROR: Could not find java executable at $JAVA" >&2
+[ -e "$java" ] || {
+	echo "ERROR: Could not find java executable at $java" >&2
 	exit 1
 }
+
+if [ "$on_cygwin" = 1 ]; then
+	# convert classpath from UNIX to Windows paths
+	unix_cp=$cp
+	IFS=:
+	set -f
+	cp=
+	for element in $unix_cp; do
+		[ "$element" ] || continue
+		cp="$cp;$(cygpath --windows "$element")"
+	done
+fi
 
 # Using "exec" here replaces the script's process table entry with that of the
 # JVM, avoiding the need to keep the script in memory while the executable
 # runs.
-exec "$JAVA" -cp "$cp" org.nick.abe.Main "$@"
+exec "$java" -cp "$cp" org.nick.abe.Main "$@"
