@@ -26,7 +26,12 @@ only compressed.
 Alternatively: 
 
 Use the bundled Ant script to create an all-in-one jar and run with: 
-(you still need to put the Bouncy Castle jar in lib/)
+(you still need to put the Bouncy Castle jar in lib/, and to edit the 
+build.xml to change version number of the Bouncy Castle jar to the one
+you downloaded. For example, if you downloaded bcprov-jdk15on-150.jar
+and put it to the lib/ directory, you need to change 
+"lib/bcprov-jdk15on-148.jar" in two lines in the build.xml to 
+"lib/bcprov-jdk15on-150.jar" in order to match the library.)
 
 ```java -jar abe.jar pack|unpack [parameters as above]```
 
