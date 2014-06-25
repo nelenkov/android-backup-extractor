@@ -12,11 +12,11 @@ Download the latest version of Bouncy Castle Provider jar
 http://www.bouncycastle.org/latest_releases.html
 
 Drop the latest Bouncy Castle jar in lib/, import in Eclipse and adjust 
-build path if necessary. Use the abe.sh script to start the utility. 
+build path if necessary. Use the ```abe``` script to start the utility. 
 Syntax: 
 
-	unpack:	        abe unpack  <backup.ab> <backup.tar> [password]
-	pack:	        abe pack    <backup.tar> <backup.ab> [password]
+	unpack:				abe unpack  <backup.ab> <backup.tar> [password]
+	pack:					abe pack    <backup.tar> <backup.ab> [password]
 	pack for 4.4:	abe pack-kk <backup.tar> <backup.ab> [password]
     (creates version 2 backups, compatible with Android 4.4.3)
 
@@ -26,9 +26,10 @@ only compressed.
 Alternatively: 
 
 Use the bundled Ant script to create an all-in-one jar and run with: 
-(you still need to put the Bouncy Castle jar in lib/)
+(you still need to put the Bouncy Castle jar in lib/; modify the 
+```bcprov.jar``` property accordingly)
 
-```java -jar abe.jar pack|unpack [parameters as above]```
+```java -jar abe.jar pack|unpack|pack-kk [parameters as above]```
 
 (Thanks to Jan Peter Stotz for contributing the build.xml file)
 
