@@ -31,8 +31,9 @@ public class AndroidBackup {
 
     private static final int BACKUP_MANIFEST_VERSION = 1;
     private static final String BACKUP_FILE_HEADER_MAGIC = "ANDROID BACKUP\n";
-    private static final int BACKUP_FILE_VERSION = 1;
-    private static final int BACKUP_FILE_VERSION_2 = 2;
+    private static final int BACKUP_FILE_V1 = 1;
+    private static final int BACKUP_FILE_V2 = 2;
+    private static final int BACKUP_FILE_V3 = 3;
 
     private static final String ENCRYPTION_MECHANISM = "AES/CBC/PKCS5Padding";
     private static final int PBKDF2_HASH_ROUNDS = 10000;
@@ -63,7 +64,7 @@ public class AndroidBackup {
                 System.out.println("Version: " + versionStr);
             }
             int version = Integer.parseInt(versionStr);
-            if (BACKUP_FILE_VERSION != version && BACKUP_FILE_VERSION_2 != version) {
+            if (version < BACKUP_FILE_V1 || version > BACKUP_FILE_V3) {
                 throw new IllegalArgumentException(
                         "Don't know how to process version " + versionStr);
             }
@@ -137,7 +138,7 @@ public class AndroidBackup {
 
                 // now validate the decrypted master key against the checksum
                 // first try the algorithm matching the archive version
-                boolean useUtf = version == BACKUP_FILE_VERSION_2;
+                boolean useUtf = version >= BACKUP_FILE_V2;
                 byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, useUtf);
                 System.out.printf("Calculated MK checksum (use UTF-8: %s): %s\n", useUtf, toHex(calculatedCk));
                 if (!Arrays.equals(calculatedCk, mkChecksum)) {
@@ -205,7 +206,7 @@ public class AndroidBackup {
 
         headerbuf.append(BACKUP_FILE_HEADER_MAGIC);
         // integer, no trailing \n
-        headerbuf.append(isKitKat ? BACKUP_FILE_VERSION_2 : BACKUP_FILE_VERSION);
+        headerbuf.append(isKitKat ? BACKUP_FILE_V2 : BACKUP_FILE_V1);
         headerbuf.append(compressing ? "\n1\n" : "\n0\n");
 
         OutputStream out = null;
