@@ -1,13 +1,7 @@
 
 package org.nick.abe;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -21,6 +15,11 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 
 import org.bouncycastle.crypto.PBEParametersGenerator;
 import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
@@ -49,8 +48,63 @@ public class AndroidBackup {
     private AndroidBackup() {
     }
 
-    public static void extractAsTar(String backupFilename, String filename,
-            String password) {
+    private static void addFileToTar(InputStream originalTar, OutputStream modifiedTar, byte[] fileToAdd, String nameInTar) throws Exception {
+        TarArchiveInputStream arIn = new TarArchiveInputStream(originalTar);
+        TarArchiveOutputStream arOut = new TarArchiveOutputStream(modifiedTar);
+        byte[] buf = new byte[1024];
+        ArchiveEntry entry = arIn.getNextEntry();
+        while (entry != null) {
+             // Add archive entry to output stream.
+             TarArchiveEntry tae = new TarArchiveEntry(entry.getName());
+             tae.setSize(entry.getSize());
+             arOut.putArchiveEntry(tae);
+             // Transfer bytes from the Entry file to the output file
+             int len;
+             while ((len = arIn.read(buf)) > 0) {
+                 arOut.write(buf, 0, len);
+             }
+            arOut.closeArchiveEntry();
+            entry = arIn.getNextEntry();
+        }
+        arIn.close();
+
+        TarArchiveEntry tae = new TarArchiveEntry(nameInTar);
+        tae.setSize(fileToAdd.length);
+        arOut.putArchiveEntry(tae);
+        arOut.write(fileToAdd);
+        arOut.closeArchiveEntry();
+
+        arOut.flush();
+        arOut.finish();
+        arOut.close();
+    }
+
+    public static void addFileToBackup(String backupFilename, String modifiedBackup, String fileToAdd, String nameInTar) throws Exception{
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        extractAsTar(backupFilename, null, baos);
+        byte[] backupTar = baos.toByteArray();
+        ByteArrayInputStream originalTarByteStream = new ByteArrayInputStream(backupTar);
+        baos.reset();
+
+        addFileToTar(originalTarByteStream, baos, readFileIntoByteArray(fileToAdd), nameInTar);
+        ByteArrayInputStream modifiedTarInputStream = new ByteArrayInputStream(baos.toByteArray());
+        packTar(modifiedTarInputStream, modifiedBackup, null, false);
+    }
+
+    private static byte[] readFileIntoByteArray(String fileName) throws Exception {
+        FileInputStream fis = new FileInputStream(fileName);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] buf = new byte[4096];
+        int len;
+        while ((len = fis.read(buf)) > 0) {
+            baos.write(buf, 0, len);
+        }
+
+        fis.close();
+        return baos.toByteArray();
+    }
+
+    public static void extractAsTar(String backupFilename, String password, OutputStream oStream) {
         try {
             InputStream rawInStream = new FileInputStream(backupFilename);
             CipherInputStream cipherStream = null;
@@ -168,28 +222,27 @@ public class AndroidBackup {
                     : baseStream;
             FileOutputStream out = null;
             try {
-                out = new FileOutputStream(filename);
                 byte[] buff = new byte[10 * 1024];
                 int read = -1;
                 long totalRead = 0;
                 while ((read = in.read(buff)) > 0) {
-                    out.write(buff, 0, read);
+                    oStream.write(buff, 0, read);
                     totalRead += read;
                     if (DEBUG && (totalRead % 100 * 1024 == 0)) {
                         System.out.printf("%d bytes read\n", totalRead);
                     }
                 }
-                System.out.printf("%d bytes written to %s.\n", 
-                        totalRead, filename);
+                System.out.printf("%d bytes written to %s.\n",
+                        totalRead, backupFilename);
 
             } finally {
                 if (in != null) {
                     in.close();
                 }
 
-                if (out != null) {
-                    out.flush();
-                    out.close();
+                if (oStream != null) {
+                    oStream.flush();
+                    oStream.close();
                 }
             }
         } catch (Exception e) {
@@ -197,7 +250,7 @@ public class AndroidBackup {
         }
     }
 
-    public static void packTar(String tarFilename, String backupFilename,
+    public static void packTar(InputStream tarIStream, String backupFilename,
             String password, boolean isKitKat) {
         boolean encrypting = password != null && !"".equals(password);
         boolean compressing = true;
@@ -211,7 +264,6 @@ public class AndroidBackup {
 
         OutputStream out = null;
         try {
-            FileInputStream in = new FileInputStream(tarFilename);
             FileOutputStream ofstream = new FileOutputStream(backupFilename);
             OutputStream finalOutput = ofstream;
             // Set up the encryption stage if appropriate, and emit the correct
@@ -240,7 +292,7 @@ public class AndroidBackup {
             byte[] buff = new byte[10 * 1024];
             int read = -1;
             int totalRead = 0;
-            while ((read = in.read(buff)) > 0) {
+            while ((read = tarIStream.read(buff)) > 0) {
                 out.write(buff, 0, read);
                 totalRead += read;
                 if (DEBUG && (totalRead % 100 * 1024 == 0)) {
