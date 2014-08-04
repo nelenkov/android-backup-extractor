@@ -1,0 +1,26 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
+
+defaultTasks = ['clean', 'jar']
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+   compile 'org.bouncycastle:bcprov-jdk16:1.46', 'org.apache.commons:commons-compress:1.5'
+   testCompile 'junit:junit:4.+'
+}
+
+jar {
+   from (configurations.compile.collect { it.isDirectory() ? it : zipTree(it)}) {
+       // remove all signature files
+       exclude "META-INF/*.SF"
+       exclude "META-INF/*.DSA"
+       exclude "META-INF/*.RSA"
+   }
+
+   manifest { attributes 'Main-Class': 'org.nick.abe.Main' }
+}
