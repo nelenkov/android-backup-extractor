@@ -1,0 +1,38 @@
+buildscript {
+  repositories { jcenter() }
+  dependencies {
+    classpath 'com.github.jengelman.gradle.plugins:shadow:1.0.3'
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+	compile 'org.bouncycastle:bcprov-jdk15on:1.51'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+}
+
+shadowJar {
+	baseName = "abe"
+}
+
+jar {
+	manifest {
+        attributes("Main-Class": "org.nick.abe.Main")
+    }
+}
+
+defaultTasks 'shadowJar'
