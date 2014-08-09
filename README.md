@@ -4,7 +4,7 @@ Android backup extractor
 Utility to extract and repack Android backups created with ```adb backup``` (ICS+). 
 Largely based on BackupManagerService.java from AOSP. 
 
-Usage: 
+Usage (Eclipse): 
 
 Download the latest version of Bouncy Castle Provider jar 
 (```bcprov-jdk15on-150.jar```) from here:
@@ -23,7 +23,7 @@ Syntax:
 If you don't specify a password the backup archive won't be encrypted but 
 only compressed. 
 
-Alternatively: 
+Alternatively with Ant: 
 
 Use the bundled Ant script to create an all-in-one jar and run with: 
 (you still need to put the Bouncy Castle jar in lib/; modify the 
@@ -32,6 +32,13 @@ Use the bundled Ant script to create an all-in-one jar and run with:
 ```java -jar abe.jar pack|unpack|pack-kk [parameters as above]```
 
 (Thanks to Jan Peter Stotz for contributing the build.xml file)
+
+Alternatively with Gradle:
+
+Use gradle to create an all-in-one jar:
+```./gradlew``` and then:
+
+```java -jar build/libs/abe-all.jar pack|unpack|pack-kk [parameters as above]```
 
 More details about the backup format and the tool implementation in the 
 associated blog post: 
