@@ -20,7 +20,7 @@ fi
 
 # honor JAVA environment variable if set; if not, use JAVA_HOME (if it's set);
 # if not, fall back to the old hardcoded default.
-: "${java:=${java_home:-/usr/bin/java}"
+: "${java:=${java_home:-/usr/bin/java}}"
 
 # Follow symlinks, if we have readlink available; this will allow a symlink to
 # the real wrapper script's location to be installed somewhere on the PATH (ie.
