@@ -2,6 +2,7 @@
 package org.nick.abe;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Console;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -83,8 +84,14 @@ public class AndroidBackup {
             if (encryptionAlg.equals(ENCRYPTION_ALGORITHM_NAME)) {
                 isEncrypted = true;
                 if (password == null || "".equals(password)) {
-                    throw new IllegalArgumentException(
-                            "Backup encrypted but password not specified");
+                    Console console = System.console();
+                    if (console != null) {
+                        System.out.println("This backup is encrypted, please provide the password");
+                        password = new String(console.readPassword("Password: "));
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Backup encrypted but password not specified");
+                    }
                 }
 
                 String userSaltHex = readHeaderLine(rawInStream); // 5
