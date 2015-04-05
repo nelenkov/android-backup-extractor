@@ -7,7 +7,7 @@ Largely based on BackupManagerService.java from AOSP.
 Usage (Eclipse): 
 
 Download the latest version of Bouncy Castle Provider jar 
-(```bcprov-jdk15on-150.jar```) from here:
+(```bcprov-jdk15on-152.jar```) from here:
 
 http://www.bouncycastle.org/latest_releases.html
 
