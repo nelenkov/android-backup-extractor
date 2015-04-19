@@ -20,8 +20,9 @@ Syntax:
 	pack for 4.4: abe pack-kk <backup.tar> <backup.ab> [password]
     (creates version 2 backups, compatible with Android 4.4.3)
 
-If you don't specify a password the backup archive won't be encrypted but 
-only compressed. 
+If the password is not given on the command line, then the environment variable
+`ABE_PASSWD` is tried. If you don't specify a password the backup archive won't
+be encrypted but only compressed. 
 
 Alternatively with Ant: 
 
