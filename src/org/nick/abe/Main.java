@@ -54,6 +54,10 @@ public class Main {
         System.out
                 .println("  pack for 4.4:\tabe pack-kk\t<backup.tar> <backup.ab> [password]");
         System.out
+                .println("If the filename is `-`, then data is read from standard input");
+        System.out
+                .println("or written to standard output.");
+        System.out
                 .println("Envvar ABE_PASSWD is tried when password is not given");
     }
 

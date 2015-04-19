@@ -53,7 +53,7 @@ public class AndroidBackup {
     public static void extractAsTar(String backupFilename, String filename,
             String password) {
         try {
-            InputStream rawInStream = new FileInputStream(backupFilename);
+            InputStream rawInStream = getInputStream(backupFilename);
             CipherInputStream cipherStream = null;
 
             String magic = readHeaderLine(rawInStream); // 1
@@ -173,9 +173,9 @@ public class AndroidBackup {
             InputStream baseStream = isEncrypted ? cipherStream : rawInStream;
             InputStream in = isCompressed ? new InflaterInputStream(baseStream)
                     : baseStream;
-            FileOutputStream out = null;
+            OutputStream out = null;
             try {
-                out = new FileOutputStream(filename);
+                out = getOutputStream(filename);
                 byte[] buff = new byte[10 * 1024];
                 int read = -1;
                 long totalRead = 0;
@@ -218,8 +218,8 @@ public class AndroidBackup {
 
         OutputStream out = null;
         try {
-            FileInputStream in = new FileInputStream(tarFilename);
-            FileOutputStream ofstream = new FileOutputStream(backupFilename);
+            InputStream in = getInputStream(tarFilename);
+            OutputStream ofstream = getOutputStream(backupFilename);
             OutputStream finalOutput = ofstream;
             // Set up the encryption stage if appropriate, and emit the correct
             // header
@@ -266,6 +266,22 @@ public class AndroidBackup {
                 } catch (IOException e) {
                 }
             }
+        }
+    }
+
+    private static InputStream getInputStream(String filename) throws IOException {
+        if (filename.equals("-")) {
+            return System.in;
+        } else {
+            return new FileInputStream(filename);
+        }
+    }
+
+    private static OutputStream getOutputStream(String filename) throws IOException {
+        if (filename.equals("-")) {
+            return System.out;
+        } else {
+            return new FileOutputStream(filename);
         }
     }
 
