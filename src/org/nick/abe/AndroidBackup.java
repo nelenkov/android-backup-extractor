@@ -53,16 +53,16 @@ public class AndroidBackup {
     public static void extractAsTar(String backupFilename, String filename,
             String password) {
         try {
-            InputStream rawInStream = new FileInputStream(backupFilename);
+            InputStream rawInStream = getInputStream(backupFilename);
             CipherInputStream cipherStream = null;
 
             String magic = readHeaderLine(rawInStream); // 1
             if (DEBUG) {
-                System.out.println("Magic: " + magic);
+                System.err.println("Magic: " + magic);
             }
             String versionStr = readHeaderLine(rawInStream); // 2
             if (DEBUG) {
-                System.out.println("Version: " + versionStr);
+                System.err.println("Version: " + versionStr);
             }
             int version = Integer.parseInt(versionStr);
             if (version < BACKUP_FILE_V1 || version > BACKUP_FILE_V3) {
@@ -73,11 +73,11 @@ public class AndroidBackup {
             String compressed = readHeaderLine(rawInStream); // 3
             boolean isCompressed = Integer.parseInt(compressed) == 1;
             if (DEBUG) {
-                System.out.println("Compressed: " + compressed);
+                System.err.println("Compressed: " + compressed);
             }
             String encryptionAlg = readHeaderLine(rawInStream); // 4
             if (DEBUG) {
-                System.out.println("Algorithm: " + encryptionAlg);
+                System.err.println("Algorithm: " + encryptionAlg);
             }
             boolean isEncrypted = false;
 
@@ -86,7 +86,7 @@ public class AndroidBackup {
                 if (password == null || "".equals(password)) {
                     Console console = System.console();
                     if (console != null) {
-                        System.out.println("This backup is encrypted, please provide the password");
+                        System.err.println("This backup is encrypted, please provide the password");
                         password = new String(console.readPassword("Password: "));
                     } else {
                         throw new IllegalArgumentException(
@@ -125,14 +125,14 @@ public class AndroidBackup {
                 int len = mkBlob[offset++];
                 IV = Arrays.copyOfRange(mkBlob, offset, offset + len);
                 if (DEBUG) {
-                    System.out.println("IV: " + toHex(IV));
+                    System.err.println("IV: " + toHex(IV));
                 }
                 offset += len;
                 // then the master key itself
                 len = mkBlob[offset++];
                 byte[] mk = Arrays.copyOfRange(mkBlob, offset, offset + len);
                 if (DEBUG) {
-                    System.out.println("MK: " + toHex(mk));
+                    System.err.println("MK: " + toHex(mk));
                 }
                 offset += len;
                 // and finally the master key checksum hash
@@ -140,19 +140,19 @@ public class AndroidBackup {
                 byte[] mkChecksum = Arrays.copyOfRange(mkBlob, offset, offset
                         + len);
                 if (DEBUG) {
-                    System.out.println("MK checksum: " + toHex(mkChecksum));
+                    System.err.println("MK checksum: " + toHex(mkChecksum));
                 }
 
                 // now validate the decrypted master key against the checksum
                 // first try the algorithm matching the archive version
                 boolean useUtf = version >= BACKUP_FILE_V2;
                 byte[] calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, useUtf);
-                System.out.printf("Calculated MK checksum (use UTF-8: %s): %s\n", useUtf, toHex(calculatedCk));
+                System.err.printf("Calculated MK checksum (use UTF-8: %s): %s\n", useUtf, toHex(calculatedCk));
                 if (!Arrays.equals(calculatedCk, mkChecksum)) {
-                    System.out.println("Checksum does not match.");
+                    System.err.println("Checksum does not match.");
                     // try the reverse
                     calculatedCk = makeKeyChecksum(mk, ckSalt, rounds, !useUtf);
-                    System.out.printf("Calculated MK checksum (use UTF-8: %s): %s\n", useUtf, toHex(calculatedCk));
+                    System.err.printf("Calculated MK checksum (use UTF-8: %s): %s\n", useUtf, toHex(calculatedCk));
                 }
 
                 if (Arrays.equals(calculatedCk, mkChecksum)) {
@@ -173,9 +173,9 @@ public class AndroidBackup {
             InputStream baseStream = isEncrypted ? cipherStream : rawInStream;
             InputStream in = isCompressed ? new InflaterInputStream(baseStream)
                     : baseStream;
-            FileOutputStream out = null;
+            OutputStream out = null;
             try {
-                out = new FileOutputStream(filename);
+                out = getOutputStream(filename);
                 byte[] buff = new byte[10 * 1024];
                 int read = -1;
                 long totalRead = 0;
@@ -183,10 +183,10 @@ public class AndroidBackup {
                     out.write(buff, 0, read);
                     totalRead += read;
                     if (DEBUG && (totalRead % 100 * 1024 == 0)) {
-                        System.out.printf("%d bytes read\n", totalRead);
+                        System.err.printf("%d bytes read\n", totalRead);
                     }
                 }
-                System.out.printf("%d bytes written to %s.\n", 
+                System.err.printf("%d bytes written to %s.\n", 
                         totalRead, filename);
 
             } finally {
@@ -218,8 +218,8 @@ public class AndroidBackup {
 
         OutputStream out = null;
         try {
-            FileInputStream in = new FileInputStream(tarFilename);
-            FileOutputStream ofstream = new FileOutputStream(backupFilename);
+            InputStream in = getInputStream(tarFilename);
+            OutputStream ofstream = getOutputStream(backupFilename);
             OutputStream finalOutput = ofstream;
             // Set up the encryption stage if appropriate, and emit the correct
             // header
@@ -251,10 +251,10 @@ public class AndroidBackup {
                 out.write(buff, 0, read);
                 totalRead += read;
                 if (DEBUG && (totalRead % 100 * 1024 == 0)) {
-                    System.out.printf("%d bytes written\n", totalRead);
+                    System.err.printf("%d bytes written\n", totalRead);
                 }
             }
-            System.out.printf("%d bytes written to %s.\n", totalRead,
+            System.err.printf("%d bytes written to %s.\n", totalRead,
                     backupFilename);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -266,6 +266,22 @@ public class AndroidBackup {
                 } catch (IOException e) {
                 }
             }
+        }
+    }
+
+    private static InputStream getInputStream(String filename) throws IOException {
+        if (filename.equals("-")) {
+            return System.in;
+        } else {
+            return new FileInputStream(filename);
+        }
+    }
+
+    private static OutputStream getOutputStream(String filename) throws IOException {
+        if (filename.equals("-")) {
+            return System.out;
+        } else {
+            return new FileOutputStream(filename);
         }
     }
 
@@ -385,8 +401,8 @@ public class AndroidBackup {
 
     public static byte[] makeKeyChecksum(byte[] pwBytes, byte[] salt, int rounds, boolean useUtf8) {
         if (DEBUG) {
-            System.out.println("key bytes: " + toHex(pwBytes));
-            System.out.println("salt bytes: " + toHex(salt));
+            System.err.println("key bytes: " + toHex(pwBytes));
+            System.err.println("salt bytes: " + toHex(salt));
         }
 
         char[] mkAsChar = new char[pwBytes.length];
@@ -394,12 +410,12 @@ public class AndroidBackup {
             mkAsChar[i] = (char) pwBytes[i];
         }
         if (DEBUG) {
-            System.out.printf("MK as string: [%s]\n", new String(mkAsChar));
+            System.err.printf("MK as string: [%s]\n", new String(mkAsChar));
         }
 
         Key checksum = buildCharArrayKey(mkAsChar, salt, rounds, useUtf8);
         if (DEBUG) {
-            System.out.println("Key format: " + checksum.getFormat());
+            System.err.println("Key format: " + checksum.getFormat());
         }
         return checksum.getEncoded();
     }

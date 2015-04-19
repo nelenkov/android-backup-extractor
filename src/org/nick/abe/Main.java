@@ -31,6 +31,11 @@ public class Main {
             password = args[3];
         }
 
+        if (password == null) {
+            /* if password is not given, try to read it from environment */
+            password = System.getenv("ABE_PASSWD");
+        }
+
         if (unpack) {
             AndroidBackup.extractAsTar(backupFilename, tarFilename, password);
         } else {
@@ -48,6 +53,12 @@ public class Main {
                 .println("  pack:\t\tabe pack\t<backup.tar> <backup.ab> [password]");
         System.out
                 .println("  pack for 4.4:\tabe pack-kk\t<backup.tar> <backup.ab> [password]");
+        System.out
+                .println("If the filename is `-`, then data is read from standard input");
+        System.out
+                .println("or written to standard output.");
+        System.out
+                .println("Envvar ABE_PASSWD is tried when password is not given");
     }
 
 }
