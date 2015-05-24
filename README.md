@@ -4,6 +4,11 @@ Android backup extractor
 Utility to extract and repack Android backups created with ```adb backup``` (ICS+). 
 Largely based on BackupManagerService.java from AOSP. 
 
+Requires Java 7. Handling encrypted backups requires the JCE unlimited strength 
+jurisdiction policy.
+
+http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html
+
 Usage (Eclipse): 
 
 Download the latest version of Bouncy Castle Provider jar 
