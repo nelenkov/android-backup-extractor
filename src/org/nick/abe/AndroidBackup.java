@@ -4,6 +4,7 @@ package org.nick.abe;
 import java.io.ByteArrayOutputStream;
 import java.io.Console;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,6 +27,9 @@ import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.crypto.PBEParametersGenerator;
 import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
 import org.bouncycastle.crypto.params.KeyParameter;
+
+import org.kamranzafar.jtar.TarEntry;
+import org.kamranzafar.jtar.TarInputStream;
 
 // mostly lifted off com.android.server.BackupManagerService.java
 public class AndroidBackup {
@@ -50,8 +54,8 @@ public class AndroidBackup {
     private AndroidBackup() {
     }
 
-    public static void extractAsTar(String backupFilename, String filename,
-            String password) {
+    private static InputStream getContentInputStream(String backupFilename, String
+            password) {
         try {
             InputStream rawInStream = getInputStream(backupFilename);
             CipherInputStream cipherStream = null;
@@ -173,6 +177,16 @@ public class AndroidBackup {
             InputStream baseStream = isEncrypted ? cipherStream : rawInStream;
             InputStream in = isCompressed ? new InflaterInputStream(baseStream)
                     : baseStream;
+            return in;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void extractAsTar(String backupFilename, String filename,
+            String password) {
+        try {
+            InputStream in = getContentInputStream(backupFilename, password);
             OutputStream out = null;
             try {
                 out = getOutputStream(filename);
@@ -200,6 +214,55 @@ public class AndroidBackup {
                 }
             }
         } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void extractHelium(String backupFilename, String outputDirectory, String password) {
+        InputStream in = getContentInputStream(backupFilename, password);
+
+        try {
+            TarInputStream tis = new TarInputStream(in);
+
+            File outputDir = new File(outputDirectory);
+            outputDir.mkdirs();
+
+            TarEntry entry;
+
+            while((entry = tis.getNextEntry()) != null) {
+                if (DEBUG) {
+                    System.err.println(entry.getName());
+                }
+
+                String name = entry.getName();
+                if (entry.isDirectory())
+                {
+                    new File(outputDir, entry.getName()).mkdirs();
+                }
+                else
+                {
+                    int lastSlashIndex = name.lastIndexOf("/");
+                    String dironly = name.substring(0, lastSlashIndex);
+                    File destDir = new File(outputDir, dironly);
+                    destDir.mkdirs();
+                    File destFile = new File (destDir, name.substring(lastSlashIndex + 1));
+
+                    int count;
+                    byte data[] = new byte[2048];
+                    FileOutputStream dest = new FileOutputStream(destFile);
+
+                    while((count = tis.read(data)) != -1) {
+                        dest.write(data, 0, count);
+                    }
+
+                    dest.flush();
+                    dest.close();
+                }
+            }
+
+            tis.close();
+        } catch (Exception e)
+        {
             throw new RuntimeException(e);
         }
     }
