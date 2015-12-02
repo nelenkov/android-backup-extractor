@@ -55,7 +55,7 @@ More details about the backup format and the tool implementation in the [associa
 
 ### Packing tar archives
 
-- Android is **very** special about the order of files in the tar archive. The format is [described here](https://android.googlesource.com/platform/frameworks/base/+/4a627c71ff53a4fca1f961f4b1dcc0461df18a06).
+- Android is **very** particular about the order of files in the tar archive. The format is [described here](https://android.googlesource.com/platform/frameworks/base/+/4a627c71ff53a4fca1f961f4b1dcc0461df18a06).
 - Incompatible tar archives lead to errors or even system crashes.
 - Apps with the `allowBackup` flag set to `false` are [not backed up nor restored](https://android.googlesource.com/platform/frameworks/base/+/a858cb075d0c87e2965d401656ff2d5bc16406da).
   - *(you can try restoring manually via `adb push` and `adb shell`)*
