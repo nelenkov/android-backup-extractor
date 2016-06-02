@@ -12,7 +12,7 @@ http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.ht
 Usage (Eclipse): 
 
 Download the latest version of Bouncy Castle Provider jar 
-(```bcprov-jdk15on-150.jar```) from here:
+(```bcprov-jdk15on-*.jar```) from here:
 
 http://www.bouncycastle.org/latest_releases.html
 
