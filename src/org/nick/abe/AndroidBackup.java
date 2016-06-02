@@ -84,6 +84,12 @@ public class AndroidBackup {
 
             if (encryptionAlg.equals(ENCRYPTION_ALGORITHM_NAME)) {
                 isEncrypted = true;
+
+                if (Cipher.getMaxAllowedKeyLength("AES") < MASTER_KEY_SIZE) {
+                    System.out.println("WARNING: Maximum allowed key-length seems smaller than needed. " +
+                            "Please check that unlimited strength cryptography is available, see README.md for details");
+                }
+
                 if (password == null || "".equals(password)) {
                     Console console = System.console();
                     if (console != null) {
