@@ -15,6 +15,7 @@ repositories {
 
 dependencies {
 	compile 'org.bouncycastle:bcprov-jdk15on:1.51'
+	compile 'org.kamranzafar:jtar:2.3'
 }
 
 sourceSets {
