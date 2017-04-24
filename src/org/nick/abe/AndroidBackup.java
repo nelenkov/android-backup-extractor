@@ -1,7 +1,15 @@
 
 package org.nick.abe;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.Console;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -172,7 +180,7 @@ public class AndroidBackup {
             }
 
             //Get input file size for percentage printing
-            long fileSize = new File(backupFilename).length();
+            double fileSize = new File(backupFilename).length();
             double percentDone = -1;
 
             OutputStream out = null;
@@ -189,7 +197,7 @@ public class AndroidBackup {
             try {
                 out = getOutputStream(filename);
                 byte[] buff = new byte[10 * 1024];
-                int read;
+                int read = -1;
                 long totalRead = 0; // of the input file decompressed
                 double currentPercent; // of the input file
                 long bytesRead; // of the input file compressed
@@ -201,8 +209,8 @@ public class AndroidBackup {
                     }
                     //Log the percentage extracted
                     bytesRead = inf == null ? totalRead : inf.getBytesRead();
-                    currentPercent = Math.round(bytesRead /(fileSize+.0) * 100);
-                    if (currentPercent != percentDone){
+                    currentPercent = Math.round(bytesRead / fileSize * 100);
+                    if (currentPercent != percentDone) {
                         System.out.print(String.format("%.0f%% ", currentPercent));
                         percentDone = currentPercent;
                     }
