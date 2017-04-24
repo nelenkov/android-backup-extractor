@@ -1,19 +1,13 @@
 
 package org.nick.abe;
 
-import java.io.ByteArrayOutputStream;
-import java.io.Console;
-import java.io.DataOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
 import javax.crypto.Cipher;
@@ -177,23 +171,43 @@ public class AndroidBackup {
                         "Invalid password or master key checksum.");
             }
 
-            InputStream baseStream = isEncrypted ? cipherStream : rawInStream;
-            InputStream in = isCompressed ? new InflaterInputStream(baseStream)
-                    : baseStream;
+            //Get input file size for percentage printing
+            long fileSize = new File(backupFilename).length();
+            double percentDone = -1;
+
             OutputStream out = null;
+            InputStream baseStream = isEncrypted ? cipherStream : rawInStream;
+            Inflater inf = null;
+            InputStream in;
+            if (isCompressed) {
+                // The Inflater is needed to get the correct percentage because of compression
+                inf = new Inflater();
+                in = new InflaterInputStream(baseStream, inf);
+            } else
+                in = baseStream;
+
             try {
                 out = getOutputStream(filename);
                 byte[] buff = new byte[10 * 1024];
-                int read = -1;
-                long totalRead = 0;
+                int read;
+                long totalRead = 0; // of the input file decompressed
+                double currentPercent; // of the input file
+                long bytesRead; // of the input file compressed
                 while ((read = in.read(buff)) > 0) {
                     out.write(buff, 0, read);
                     totalRead += read;
                     if (DEBUG && (totalRead % 100 * 1024 == 0)) {
                         System.err.printf("%d bytes read\n", totalRead);
                     }
+                    //Log the percentage extracted
+                    bytesRead = inf == null ? totalRead : inf.getBytesRead();
+                    currentPercent = Math.round(bytesRead /(fileSize+.0) * 100);
+                    if (currentPercent != percentDone){
+                        System.out.print(String.format("%.0f%% ", currentPercent));
+                        percentDone = currentPercent;
+                    }
                 }
-                System.err.printf("%d bytes written to %s.\n", 
+                System.err.printf("\n%d bytes written to %s.\n",
                         totalRead, filename);
 
             } finally {
