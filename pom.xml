@@ -24,6 +24,11 @@
 			<artifactId>bcprov-jdk15on</artifactId>
 			<version>1.51</version>
 		</dependency>
+		<dependency>
+			<groupId>org.kamranzafar</groupId>
+			<artifactId>jtar</artifactId>
+			<version>2.3</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<sourceDirectory>src</sourceDirectory>

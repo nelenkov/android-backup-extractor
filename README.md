@@ -9,6 +9,26 @@ jurisdiction policy.
 
 http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html
 
+# Usage
+
+```
+d:\personal\work\tools\android-backup-extractor>java -jar target/abe-1.0-SNAPSHOT.jar
+Usage:
+  abe unpack    <backup.ab> <backup.tar> [password]
+  abe unpack-helium-tar <backup.ab> <backup.tar> [password]
+  abe unpack-helium     <backup.ab> outputDir [password]
+  abe pack      <backup.tar> <backup.ab> [password]
+  #pack for 4.4:
+  abe pack-kk   <backup.tar> <backup.ab> [password]
+
+If the filename is `-`, then data is read from standard input
+or written to standard output.
+Envvar ABE_PASSWD is tried when password is not given
+```
+
+
+# Build
+
 ## Build with Eclipse
 
 Download the latest version of Bouncy Castle Provider jar 

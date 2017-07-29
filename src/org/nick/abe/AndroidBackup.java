@@ -29,6 +29,9 @@ import org.bouncycastle.crypto.PBEParametersGenerator;
 import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
 import org.bouncycastle.crypto.params.KeyParameter;
 
+import org.kamranzafar.jtar.TarEntry;
+import org.kamranzafar.jtar.TarInputStream;
+
 // mostly lifted off com.android.server.BackupManagerService.java
 public class AndroidBackup {
 
@@ -46,18 +49,30 @@ public class AndroidBackup {
     private static final int PBKDF2_SALT_SIZE = 512; // bits
     private static final String ENCRYPTION_ALGORITHM_NAME = "AES-256";
 
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     private static final SecureRandom random = new SecureRandom();
 
     private AndroidBackup() {
     }
 
-    public static void extractAsTar(String backupFilename, String filename,
-            String password) {
+    private static InputStream getContentInputStream(String backupFilename, String
+            password, boolean abex) {
         try {
             InputStream rawInStream = getInputStream(backupFilename);
             CipherInputStream cipherStream = null;
+            if(abex){
+              String abex1 = readHeaderLine(rawInStream); // 1
+              String abex2 = readHeaderLine(rawInStream); // 1
+              String abex3 = readHeaderLine(rawInStream); // 1
+              String abex4 = readHeaderLine(rawInStream); // 1
+              String abex5 = readHeaderLine(rawInStream); // 1
+              System.out.println("abex1:"+abex1);
+              System.out.println("abex2:"+abex2);
+              System.out.println("abex3:"+abex3);
+              System.out.println("abex4:"+abex4);
+              System.out.println("abex5:"+abex5);
+            }
 
             String magic = readHeaderLine(rawInStream); // 1
             if (DEBUG) {
@@ -179,21 +194,25 @@ public class AndroidBackup {
                         "Invalid password or master key checksum.");
             }
 
-            //Get input file size for percentage printing
-            double fileSize = new File(backupFilename).length();
-            double percentDone = -1;
-
             OutputStream out = null;
             InputStream baseStream = isEncrypted ? cipherStream : rawInStream;
-            Inflater inf = null;
-            InputStream in;
-            if (isCompressed) {
-                // The Inflater is needed to get the correct percentage because of compression
-                inf = new Inflater();
-                in = new InflaterInputStream(baseStream, inf);
-            } else
-                in = baseStream;
+            InputStream in = isCompressed ? new InflaterInputStream(baseStream)
+                    : baseStream;
+            return in;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    public static void extractAsTar(boolean helium, String backupFilename, String filename,
+            String password) {
+      //Get input file size for percentage printing
+      double fileSize = new File(backupFilename).length();
+      double percentDone = -1;
+
+        try {
+            InputStream in = getContentInputStream(backupFilename, password,helium);
+            OutputStream out = null;
             try {
                 out = getOutputStream(filename);
                 byte[] buff = new byte[10 * 1024];
@@ -208,7 +227,8 @@ public class AndroidBackup {
                         System.err.printf("%d bytes read\n", totalRead);
                     }
                     //Log the percentage extracted
-                    bytesRead = inf == null ? totalRead : inf.getBytesRead();
+                    //bytesRead = inf == null ? totalRead : inf.getBytesRead();
+                    bytesRead = totalRead;
                     currentPercent = Math.round(bytesRead / fileSize * 100);
                     if (currentPercent != percentDone) {
                         System.out.print(String.format("%.0f%% ", currentPercent));
@@ -229,6 +249,55 @@ public class AndroidBackup {
                 }
             }
         } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void extractHelium(String backupFilename, String outputDirectory, String password) {
+        InputStream in = getContentInputStream(backupFilename, password,true);
+
+        try {
+            TarInputStream tis = new TarInputStream(in);
+
+            File outputDir = new File(outputDirectory);
+            outputDir.mkdirs();
+
+            TarEntry entry;
+
+            while((entry = tis.getNextEntry()) != null) {
+                if (DEBUG) {
+                    System.err.println(entry.getName());
+                }
+
+                String name = entry.getName().replaceAll("[:]","#comma");
+                if (entry.isDirectory())
+                {
+                    new File(outputDir, entry.getName()).mkdirs();
+                }
+                else
+                {
+                    int lastSlashIndex = name.lastIndexOf("/");
+                    String dironly = name.substring(0, lastSlashIndex);
+                    File destDir = new File(outputDir, dironly);
+                    destDir.mkdirs();
+                    File destFile = new File (destDir, name.substring(lastSlashIndex + 1));
+
+                    int count;
+                    byte data[] = new byte[2048];
+                    FileOutputStream dest = new FileOutputStream(destFile);
+
+                    while((count = tis.read(data)) != -1) {
+                        dest.write(data, 0, count);
+                    }
+
+                    dest.flush();
+                    dest.close();
+                }
+            }
+
+            tis.close();
+        } catch (Exception e)
+        {
             throw new RuntimeException(e);
         }
     }
