@@ -49,7 +49,7 @@ public class AndroidBackup {
     private static final int PBKDF2_SALT_SIZE = 512; // bits
     private static final String ENCRYPTION_ALGORITHM_NAME = "AES-256";
 
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private static final SecureRandom random = new SecureRandom();
 
