@@ -54,6 +54,7 @@ Use gradle to create an all-in-one jar:
 ```
 mvn package
 java -jar target/abe-1.0-SNAPSHOT.jar pack|unpack|pack-kk [parameters as above]
+```
 
 # Notes
 
