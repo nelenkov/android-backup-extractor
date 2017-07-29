@@ -9,7 +9,7 @@ jurisdiction policy.
 
 http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html
 
-Usage (Eclipse): 
+## Build with Eclipse
 
 Download the latest version of Bouncy Castle Provider jar 
 (```bcprov-jdk15on-*.jar```) from here:
@@ -32,7 +32,7 @@ If the password is not given on the command line, then the environment variable
 `ABE_PASSWD` is tried. If you don't specify a password the backup archive won't
 be encrypted but only compressed. 
 
-Alternatively with Ant: 
+## Build with Ant
 
 Use the bundled Ant script to create an all-in-one jar and run with: 
 (you still need to put the Bouncy Castle jar in lib/; modify the 
@@ -42,12 +42,18 @@ Use the bundled Ant script to create an all-in-one jar and run with:
 
 (Thanks to Jan Peter Stotz for contributing the build.xml file)
 
-Alternatively with Gradle:
+## Build with Gradle
 
 Use gradle to create an all-in-one jar:
 ```./gradlew``` and then:
 
 ```java -jar build/libs/abe-all.jar pack|unpack|pack-kk [parameters as above]```
+
+## Build with Maven
+
+```
+mvn package
+java -jar target/abe-1.0-SNAPSHOT.jar pack|unpack|pack-kk [parameters as above]
 
 # Notes
 
