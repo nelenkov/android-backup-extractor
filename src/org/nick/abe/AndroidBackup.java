@@ -89,7 +89,7 @@ public class AndroidBackup {
                 isEncrypted = true;
 
                 if (Cipher.getMaxAllowedKeyLength("AES") < MASTER_KEY_SIZE) {
-                    System.out.println("WARNING: Maximum allowed key-length seems smaller than needed. " +
+                    System.err.println("WARNING: Maximum allowed key-length seems smaller than needed. " +
                             "Please check that unlimited strength cryptography is available, see README.md for details");
                 }
 
@@ -212,7 +212,7 @@ public class AndroidBackup {
                     bytesRead = inf == null ? totalRead : inf.getBytesRead();
                     currentPercent = Math.round(bytesRead / fileSize * 100);
                     if (currentPercent != percentDone) {
-                        System.out.print(String.format("%.0f%% ", currentPercent));
+                        System.err.print(String.format("%.0f%% ", currentPercent));
                         percentDone = currentPercent;
                     }
                 }
