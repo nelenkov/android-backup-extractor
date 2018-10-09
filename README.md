@@ -51,7 +51,7 @@ Use gradle to create an all-in-one jar:
 
 # Releases
 
-[Releases(https://github.com/nelenkov/android-backup-extractor/releases/latest)] are build with Travis CI from the master branch and include a runnable fat jar.
+[Releases](https://github.com/nelenkov/android-backup-extractor/releases/latest) are build with Travis CI from the master branch and include a runnable fat jar.
 
 [![Build Status](https://travis-ci.org/nelenkov/android-backup-extractor.svg?branch=master)](https://travis-ci.org/nelenkov/android-backup-extractor)
 
