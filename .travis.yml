@@ -5,5 +5,5 @@ before_deploy:
     - git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
 deploy:
     provider: releases
-    skip_cleanup: true
+    api_key: "$GH_TOKEN"
 
