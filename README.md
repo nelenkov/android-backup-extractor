@@ -2,7 +2,7 @@ Android backup extractor
 ========================
 
 Utility to extract and repack Android backups created with ```adb backup``` (ICS+). 
-Largely based on BackupManagerService.java from AOSP. 
+Largely based on ```BackupManagerService.java``` from AOSP. 
 
 # Building
 
@@ -16,11 +16,9 @@ Use one of the tools listed below to build or see [Releases](#releases) for pre-
 ## With Eclipse: 
 
 Download the latest version of Bouncy Castle Provider jar 
-(```bcprov-jdk15on-*.jar```) from here:
+(```bcprov-jdk15on-*.jar```) from [here](http://www.bouncycastle.org/latest_releases.html):
 
-http://www.bouncycastle.org/latest_releases.html
-
-Drop the latest Bouncy Castle jar in lib/, import in Eclipse and adjust 
+Drop the latest Bouncy Castle jar in ```lib/```, import in Eclipse and adjust 
 build path if necessary. Use the ```abe``` script to start the utility. 
 
 ## With Ant:
@@ -29,7 +27,7 @@ Use the bundled Ant script to create an all-in-one jar and run with:
 (you still need to put the Bouncy Castle jar in lib/; modify the 
 ```bcprov.jar``` property accordingly)
 
-```java -jar abe.jar pack|unpack|pack-kk [parameters as above]```
+```java -jar abe.jar pack|unpack|pack-kk ...```
 
 (Thanks to Jan Peter Stotz for contributing the build.xml file)
 
@@ -38,17 +36,15 @@ Use the bundled Ant script to create an all-in-one jar and run with:
 Use gradle to create an all-in-one jar:
 ```./gradlew``` and then:
 
-```java -jar build/libs/abe-all.jar pack|unpack|pack-kk [parameters as above]```
+```java -jar build/libs/abe-all.jar pack|unpack|pack-kk ...```
 
 # Usage
 
 ## Syntax: 
-```
-	unpack:       abe unpack  <backup.ab> <backup.tar> [password]
-	pack:         abe pack    <backup.tar> <backup.ab> [password]
-	pack for 4.4: abe pack-kk <backup.tar> <backup.ab> [password]
-    (creates version 2 backups, compatible with Android 4.4.3)
-```
+* unpack:       ```abe unpack  <backup.ab> <backup.tar> [password]```
+* pack:         ```abe pack    <backup.tar> <backup.ab> [password]```
+* pack for 4.4: ```abe pack-kk <backup.tar> <backup.ab> [password]```
+  (creates version 2 backups, compatible with Android 4.4.3)
 
 If the filename is `-`, then data is read from standard input or written to
 standard output.
@@ -79,7 +75,7 @@ You can now pack `restore.tar` and try `adb restore restore.ab`
 
 [Releases](https://github.com/nelenkov/android-backup-extractor/releases/latest) are build with Travis CI from the master branch and include a runnable fat jar.
 
-Use the binaries at your own risk. 
+Use the binaries at your own risk. No warranty or support provided.
 
 Please report only bugs in backup extractor itself, I can't answer questions regrading unpacking/repacking backups or tar files.
 (See [Usage](#usage) for a mini usage guide.)
