@@ -49,6 +49,12 @@ Use gradle to create an all-in-one jar:
 
 ```java -jar build/libs/abe-all.jar pack|unpack|pack-kk [parameters as above]```
 
+# Releases
+
+[Releases(releases/latest)] are build with Travis CI from the master branch and include a runnable fat jar.
+
+[![Build Status](https://travis-ci.org/nelenkov/android-backup-extractor.svg?branch=master)](https://travis-ci.org/nelenkov/android-backup-extractor)
+
 # Notes
 
 More details about the backup format and the tool implementation in the [associated blog post](https://nelenkov.blogspot.de/2012/06/unpacking-android-backups.html).
