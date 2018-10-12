@@ -73,7 +73,7 @@ You can now pack `restore.tar` and try `adb restore restore.ab`
 
 # Releases
 
-[Releases](https://github.com/nelenkov/android-backup-extractor/releases/latest) are build with Travis CI from the master branch and include a runnable fat jar.
+[Releases](https://github.com/nelenkov/android-backup-extractor/releases/latest) are built with Travis CI from the master branch and include a runnable fat jar.
 
 Use the binaries at your own risk. No warranty or support provided.
 
