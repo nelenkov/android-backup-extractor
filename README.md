@@ -7,7 +7,7 @@ Largely based on ```BackupManagerService.java``` from AOSP.
 # Building
 
 Requires Java 7. Handling encrypted backups requires the JCE unlimited strength 
-jurisdiction policy (not needed if using current Java 9 release).
+jurisdiction policy (not needed if using Java 9 or newer releases).
 
 http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html
 
