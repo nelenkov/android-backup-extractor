@@ -34,6 +34,7 @@ public class AndroidBackup {
 
     private static final int BACKUP_MANIFEST_VERSION = 1;
     private static final String BACKUP_FILE_HEADER_MAGIC = "ANDROID BACKUP\n";
+    private static final String MIUI_BACKUP_FILE_HEADER_MAGIC = "MIUI BACKUP";
     private static final int BACKUP_FILE_V1 = 1;
     private static final int BACKUP_FILE_V2 = 2;
     private static final int BACKUP_FILE_V3 = 3;
@@ -61,6 +62,17 @@ public class AndroidBackup {
             CipherInputStream cipherStream = null;
 
             String magic = readHeaderLine(rawInStream); // 1
+            if (MIUI_BACKUP_FILE_HEADER_MAGIC.equals(magic)) {
+                //if this is MIUI OS backup file,drop five line from file header
+                //MIUI OS insert five line in the file header
+                if (DEBUG){
+                    System.out.println("Drop MIUI backup file header");
+                }
+                for (int i = 0; i < 4; i++) {
+                    readHeaderLine(rawInStream);
+                }
+                magic = readHeaderLine(rawInStream);
+            }
             if (DEBUG) {
                 System.err.println("Magic: " + magic);
             }
