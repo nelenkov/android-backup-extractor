@@ -21,6 +21,13 @@ Download the latest version of Bouncy Castle Provider jar
 Drop the latest Bouncy Castle jar in ```lib/```, import in Eclipse and adjust 
 build path if necessary. Use the ```abe``` script to start the utility. 
 
+## With Maven (requires at least JDK11):
+
+To create a self-executable all-in-one jar:
+```mvn clean package``` and then:
+
+```java -jar target/abe.jar pack|unpack|pack-kk ...```
+
 ## With Ant:
 
 Use the bundled Ant script to create an all-in-one jar and run with: 
