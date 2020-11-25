@@ -6,7 +6,7 @@ Largely based on ```BackupManagerService.java``` from AOSP.
 
 # Building
 
-Requires Java 7. Handling encrypted backups requires the JCE unlimited strength 
+Requires Java 11. Handling encrypted backups requires the JCE unlimited strength 
 jurisdiction policy (not needed if using current Java 9 release).
 
 http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html
@@ -20,6 +20,13 @@ Download the latest version of Bouncy Castle Provider jar
 
 Drop the latest Bouncy Castle jar in ```lib/```, import in Eclipse and adjust 
 build path if necessary. Use the ```abe``` script to start the utility. 
+
+## With Maven (requires at least JDK11):
+
+To create a self-executable all-in-one jar:
+```mvn clean package``` and then:
+
+```java -jar target/abe.jar pack|unpack|pack-kk ...```
 
 ## With Ant:
 

@@ -1,7 +1,7 @@
 buildscript {
   repositories { jcenter() }
   dependencies {
-    classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+    classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.3'
   }
 }
 
@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-	compile 'org.bouncycastle:bcprov-jdk15on:1.51'
+	implementation 'org.bouncycastle:bcprov-jdk15on:1.66'
 }
 
 sourceSets {
@@ -26,7 +26,7 @@ sourceSets {
 }
 
 shadowJar {
-	baseName = "abe"
+	archiveBaseName = "abe"
 }
 
 jar {
