@@ -9,6 +9,7 @@ jobs:
   semgrep:
     name: Scan
     runs-on: ubuntu-latest
+    config: p/r2c
     steps:
     - uses: actions/checkout@v2
     - uses: returntocorp/semgrep-action@v1
