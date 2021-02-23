@@ -6,7 +6,7 @@ before_deploy:
     - git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
 deploy:
     provider: releases
-    file: build/libs/abe-all.jar
+    file: build/libs/abe.jar
     api_key: "$GH_TOKEN"
     skip_cleanup: true
 
