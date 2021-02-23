@@ -3,12 +3,11 @@ script: gradle shadowJar
 before_deploy:
     # Set up git user name and tag this commit
     - git config --local user.name "nelenkov"
-    - git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
+    - export TRAVIS_TAG=${TRAVIS_TAG:-$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)}
+    - git tag $TRAVIS_TAG
 deploy:
     provider: releases
-    file: build/libs/abe.jar
     api_key: "$GH_TOKEN"
+    file: build/libs/abe.jar
     skip_cleanup: true
-    on:
-      tags: true
 
