@@ -16,6 +16,5 @@ jobs:
         auditOn: push
         publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
         publishDeployment: 344
-        config: p/findsecbugs
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
