@@ -87,7 +87,7 @@ Use the binaries at your own risk. No warranty or support provided.
 Please report only bugs in backup extractor itself, I can't answer questions regrading unpacking/repacking backups or tar files.
 (See [Usage](#usage) for a mini usage guide.)
 
-[![Build Status](https://travis-ci.org/nelenkov/android-backup-extractor.svg?branch=master)](https://travis-ci.org/nelenkov/android-backup-extractor)
+[![Build Status](https://travis-ci.com/nelenkov/android-backup-extractor.svg?branch=master)](https://travis-ci.com/nelenkov/android-backup-extractor)
 
 # Notes
 
