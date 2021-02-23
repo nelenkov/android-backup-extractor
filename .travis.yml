@@ -9,4 +9,6 @@ deploy:
     file: build/libs/abe.jar
     api_key: "$GH_TOKEN"
     skip_cleanup: true
+    on:
+      tags: true
 
