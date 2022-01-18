@@ -1,23 +1,21 @@
-buildscript {
-  repositories { jcenter() }
-  dependencies {
-    classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.3'
-  }
+plugins {
+    id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
 apply plugin: 'java'
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+apply plugin: 'maven-publish'
 
-apply plugin: 'com.github.johnrengelman.shadow'
+group = 'org.nick.abe'
 
+sourceCompatibility = 11
+targetCompatibility = 11
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-	implementation 'org.bouncycastle:bcprov-jdk15on:1.67'
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
 }
 
 sourceSets {
@@ -29,12 +27,20 @@ sourceSets {
 }
 
 shadowJar {
-	archiveBaseName = "abe"
+    archiveBaseName = "abe"
 }
 
 jar {
-	manifest {
+    manifest {
         attributes("Main-Class": "org.nick.abe.Main")
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+        }
     }
 }
 
