@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -198,7 +199,7 @@ public class AndroidBackup {
             try {
                 out = getOutputStream(filename);
                 byte[] buff = new byte[10 * 1024];
-                int read = -1;
+                int read;
                 long totalRead = 0; // of the input file decompressed
                 double currentPercent; // of the input file
                 long bytesRead; // of the input file compressed
@@ -212,7 +213,7 @@ public class AndroidBackup {
                     bytesRead = inf == null ? totalRead : inf.getBytesRead();
                     currentPercent = Math.round(bytesRead / fileSize * 100);
                     if (currentPercent != percentDone) {
-                        System.err.print(String.format("%.0f%% ", currentPercent));
+                        System.err.printf("%.0f%% ", currentPercent);
                         percentDone = currentPercent;
                     }
                 }
@@ -220,9 +221,7 @@ public class AndroidBackup {
                         totalRead, filename);
 
             } finally {
-                if (in != null) {
-                    in.close();
-                }
+                in.close();
 
                 if (out != null) {
                     out.flush();
@@ -260,7 +259,7 @@ public class AndroidBackup {
                 headerbuf.append("none\n");
             }
 
-            byte[] header = headerbuf.toString().getBytes("UTF-8");
+            byte[] header = headerbuf.toString().getBytes(StandardCharsets.UTF_8);
             ofstream.write(header);
 
             // Set up the compression stage feeding into the encryption stage
@@ -275,7 +274,7 @@ public class AndroidBackup {
             out = finalOutput;
 
             byte[] buff = new byte[10 * 1024];
-            int read = -1;
+            int read;
             int totalRead = 0;
             while ((read = in.read(buff)) > 0) {
                 out.write(buff, 0, read);
@@ -293,7 +292,7 @@ public class AndroidBackup {
                 try {
                     out.flush();
                     out.close();
-                } catch (IOException e) {
+                } catch (IOException ignored) {
                 }
             }
         }
@@ -395,7 +394,7 @@ public class AndroidBackup {
     }
 
     public static String toHex(byte[] bytes) {
-        StringBuffer buff = new StringBuffer();
+        StringBuilder buff = new StringBuilder();
         for (byte b : bytes) {
             buff.append(String.format("%02X", b));
         }

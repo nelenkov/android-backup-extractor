@@ -1,30 +1,30 @@
 <project default="all">
     <!-- author: Jan Peter Stotz -->
 
-	<property name="jar.filename" value="abe.jar" />
-	<property name="main.class" value="org.nick.abe.Main" />
-	<property name="bcprov.jar" value="lib/bcprov-jdk15on-150.jar" />
+    <property name="jar.filename" value="abe.jar"/>
+    <property name="main.class" value="org.nick.abe.Main"/>
+    <property name="bcprov.jar" value="lib/bcprov-jdk15on-1.70.jar"/>
 
+    <target name="all" depends="build,jar"/>
 
-	<target name="all" depends="build,jar" />
+    <target name="build">
+        <delete includeEmptyDirs="true" failonerror="false">
+            <fileset dir="build" includes="**/*"/>
+        </delete>
+        <mkdir dir="build"/>
+        <javac srcdir="src" destdir="build" classpath="${bcprov.jar}" debug="true" includeantruntime="false"
+               encoding="UTF-8" source="11"/>
+    </target>
 
-	<target name="build">
-		<delete includeEmptyDirs="true" failonerror="false">
-			<fileset dir="build" includes="**/*" />
-		</delete>
-		<mkdir dir="build" />
-        <javac srcdir="src" destdir="build" classpath="${bcprov.jar}" debug="true" includeantruntime="false" encoding="UTF-8" source="1.7" />
-	</target>
-
-	<target name="jar" depends="build" description="Create a standalone-jar (no external dependency)">
-		<delete file="${jar.filename}" />
-		<jar destfile="${jar.filename}" filesetmanifest="mergewithoutmain">
-			<manifest>
-				<attribute name="Main-Class" value="${main.class}" />
-			</manifest>
-			<fileset dir="build" />
-			<!-- Include BouncyCastle JAR -->
-            <zipfileset src="${bcprov.jar}" includes="org/**" />
-		</jar>
-	</target>
+    <target name="jar" depends="build" description="Create a standalone-jar (no external dependency)">
+        <delete file="${jar.filename}"/>
+        <jar destfile="${jar.filename}" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="${main.class}"/>
+            </manifest>
+            <fileset dir="build"/>
+            <!-- Include BouncyCastle JAR -->
+            <zipfileset src="${bcprov.jar}" includes="org/**"/>
+        </jar>
+    </target>
 </project>

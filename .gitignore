@@ -16,3 +16,12 @@ build/
 
 # Local configuration file (sdk path, etc)
 local.properties
+
+# IntelliJ folder
+.idea/
+
+# Maven
+target/
+
+# Ant
+abe.jar

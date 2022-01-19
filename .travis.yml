@@ -1,5 +1,5 @@
 language: java
-script: gradle shadowJar
+script: ./gradlew shadowJar
 before_deploy:
     # Set up git user name and tag this commit
     - git config --local user.name "nelenkov"
@@ -10,4 +10,3 @@ deploy:
     api_key: "$GH_TOKEN"
     file: build/libs/abe.jar
     skip_cleanup: true
-
