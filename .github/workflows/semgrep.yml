@@ -15,6 +15,5 @@ jobs:
       with:
         auditOn: push
         publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-        publishDeployment: 344
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
