@@ -3,7 +3,10 @@ plugins {
 }
 
 apply plugin: 'java'
+apply plugin: 'application'
 apply plugin: 'maven-publish'
+
+mainClassName = 'org.nick.abe.Main'
 
 group = 'org.nick.abe'
 
@@ -27,13 +30,9 @@ sourceSets {
 }
 
 shadowJar {
-    archiveBaseName = "abe"
-}
-
-jar {
-    manifest {
-        attributes("Main-Class": "org.nick.abe.Main")
-    }
+    minimize()
+    archiveBaseName = 'abe'
+    archiveClassifier = ''
 }
 
 publishing {
