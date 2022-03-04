@@ -11,4 +11,4 @@ deploy:
     file: build/libs/abe.jar
     skip_cleanup: true
     on:
-      all_branches: true
+      branch: master
