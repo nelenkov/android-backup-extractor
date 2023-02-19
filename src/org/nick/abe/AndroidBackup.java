@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -60,6 +62,11 @@ public class AndroidBackup {
         try {
             InputStream rawInStream = getInputStream(backupFilename);
             CipherInputStream cipherStream = null;
+
+            // To prevent the NumberFormatException when trying to figure out the backup version
+            if (Files.size(Paths.get(backupFilename)) == 0) {
+                throw new IllegalStateException("File too small in size");
+            }
 
             String magic = readHeaderLine(rawInStream); // 1
             if (DEBUG) {
