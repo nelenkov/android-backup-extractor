@@ -9,8 +9,13 @@ application.mainClass.set 'org.nick.abe.Main'
 
 group = 'org.nick.abe'
 
+var targetJavaVersion = JavaVersion.VERSION_1_8
 java {
-    sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = targetCompatibility = targetJavaVersion
+}
+
+compileJava {
+    options.release.set targetJavaVersion.majorVersion.toInteger()
 }
 
 repositories {
