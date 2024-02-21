@@ -6,9 +6,9 @@
   <version>1.0.0-SNAPSHOT</version>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <javac.source>11</javac.source>
-    <javac.target>11</javac.target>
-    <javac.release>11</javac.release>
+    <javac.source>8</javac.source>
+    <javac.target>8</javac.target>
+    <javac.release>8</javac.release>
   </properties>
   <scm>
     <developerConnection>scm:git:ssh:git@github.com:nelenkov/android-backup-extractor.git</developerConnection>
@@ -17,8 +17,8 @@
   <dependencies>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
-      <version>1.70</version>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.77</version>
     </dependency>
   </dependencies>
   <build>

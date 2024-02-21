@@ -3,7 +3,7 @@
 
     <property name="jar.filename" value="abe.jar"/>
     <property name="main.class" value="org.nick.abe.Main"/>
-    <property name="bcprov.jar" value="lib/bcprov-jdk15on-1.70.jar"/>
+    <property name="bcprov.jar" value="lib/bcprov-jdk18on-1.77.jar"/>
 
     <target name="all" depends="build,jar"/>
 
@@ -13,7 +13,7 @@
         </delete>
         <mkdir dir="build"/>
         <javac srcdir="src" destdir="build" classpath="${bcprov.jar}" debug="true" includeantruntime="false"
-               encoding="UTF-8" source="11"/>
+               encoding="UTF-8" source="8" target="8" release="8"/>
     </target>
 
     <target name="jar" depends="build" description="Create a standalone-jar (no external dependency)">
