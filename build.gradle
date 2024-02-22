@@ -1,24 +1,29 @@
 plugins {
     id "com.github.johnrengelman.shadow" version "8.1.1"
+    id 'java'
+    id 'application'
+    id 'maven-publish'
 }
 
-apply plugin: 'java'
-apply plugin: 'application'
-apply plugin: 'maven-publish'
-
-mainClassName = 'org.nick.abe.Main'
+application.mainClass.set 'org.nick.abe.Main'
 
 group = 'org.nick.abe'
 
-sourceCompatibility = 11
-targetCompatibility = 11
+var targetJavaVersion = JavaVersion.VERSION_1_8
+java {
+    sourceCompatibility = targetCompatibility = targetJavaVersion
+}
+
+compileJava {
+    options.release.set targetJavaVersion.majorVersion.toInteger()
+}
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.77'
 }
 
 sourceSets {
@@ -31,8 +36,7 @@ sourceSets {
 
 shadowJar {
     minimize()
-    archiveBaseName = 'abe'
-    archiveClassifier = ''
+    archiveBaseName.set 'abe'
 }
 
 publishing {
