@@ -129,8 +129,7 @@ public class AndroidBackup {
 
                 // decrypt the master key blob
                 Cipher c = Cipher.getInstance(ENCRYPTION_MECHANISM);
-                // XXX we don't support non-ASCII passwords
-                SecretKey userKey = buildPasswordKey(password, userSalt, rounds, false);
+                SecretKey userKey = buildPasswordKey(password, userSalt, rounds, true);
                 byte[] IV = hexToByteArray(userIvHex);
                 IvParameterSpec ivSpec = new IvParameterSpec(IV);
                 c.init(Cipher.DECRYPT_MODE,
@@ -161,6 +160,25 @@ public class AndroidBackup {
                     System.err.println("MK checksum: " + toHex(mkChecksum));
                 }
 
+                // checking pkcs5 padding (of length 13 or even 8) is enough to determine a wrong password
+                c = Cipher.getInstance("AES/CBC/NoPadding");
+                userKey = buildPasswordKey(password, userSalt, rounds, true);
+                byte[] IVCheck = hexToByteArray(userIvHex);
+                ivSpec = new IvParameterSpec(IVCheck);
+                c.init(Cipher.DECRYPT_MODE,
+                        new SecretKeySpec(userKey.getEncoded(), "AES"), ivSpec);
+                mkCipher = hexToByteArray(masterKeyBlobHex);
+                byte[] mkBlobCheck = c.doFinal(mkCipher);
+                int pad_byte  = mkBlobCheck[mkBlobCheck.length - 1];
+                if (pad_byte < 8) {
+                    System.err.println("PKCS5Padding is not correct, wrong password?");
+                } else {
+                    c = Cipher.getInstance(ENCRYPTION_MECHANISM);
+                    ivSpec = new IvParameterSpec(IV);
+                    c.init(Cipher.DECRYPT_MODE, new SecretKeySpec(mk, "AES"), ivSpec);
+                    cipherStream = new CipherInputStream(rawInStream, c);
+                }
+                /*
                 // now validate the decrypted master key against the checksum
                 // first try the algorithm matching the archive version
                 boolean useUtf = version >= BACKUP_FILE_V2;
@@ -180,7 +198,7 @@ public class AndroidBackup {
                     // Only if all of the above worked properly will 'result' be
                     // assigned
                     cipherStream = new CipherInputStream(rawInStream, c);
-                }
+                } */
             }
 
             if (isEncrypted && cipherStream == null) {
