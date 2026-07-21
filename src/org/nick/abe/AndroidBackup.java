@@ -101,7 +101,7 @@ public class AndroidBackup {
                             "Please check that unlimited strength cryptography is available, see README.md for details");
                 }
 
-                if (password == null || "".equals(password)) {
+                if (password == null || password.isEmpty()) {
                     Console console = System.console();
                     if (console != null) {
                         System.err.println("This backup is encrypted, please provide the password");
@@ -197,7 +197,7 @@ public class AndroidBackup {
             Inflater inf = null;
             InputStream in;
             if (isCompressed) {
-                // The Inflater is needed to get the correct percentage because of compression
+                // The inflater is needed to get the correct percentage because of compression
                 inf = new Inflater();
                 in = new InflaterInputStream(baseStream, inf);
             } else
@@ -241,33 +241,37 @@ public class AndroidBackup {
     }
 
     public static void packTar(String tarFilename, String backupFilename,
-            String password, boolean isKitKat) {
-        boolean encrypting = password != null && !"".equals(password);
-        boolean compressing = true;
+                               String password, boolean isKitKat) {
+        packTar(tarFilename, backupFilename, password, isKitKat, true);
+    }
 
-        StringBuilder headerbuf = new StringBuilder(1024);
+    public static void packTar(String tarFilename, String backupFilename,
+            String password, boolean isKitKat, boolean compressing) {
+        boolean encrypting = password != null && !password.isEmpty();
 
-        headerbuf.append(BACKUP_FILE_HEADER_MAGIC);
+        StringBuilder headerBuf = new StringBuilder(1024);
+
+        headerBuf.append(BACKUP_FILE_HEADER_MAGIC);
         // integer, no trailing \n
-        headerbuf.append(isKitKat ? BACKUP_FILE_V2 : BACKUP_FILE_V1);
-        headerbuf.append(compressing ? "\n1\n" : "\n0\n");
+        headerBuf.append(isKitKat ? BACKUP_FILE_V2 : BACKUP_FILE_V1);
+        headerBuf.append(compressing ? "\n1\n" : "\n0\n");
 
         OutputStream out = null;
         try {
             InputStream in = getInputStream(tarFilename);
-            OutputStream ofstream = getOutputStream(backupFilename);
-            OutputStream finalOutput = ofstream;
+            OutputStream ofStream = getOutputStream(backupFilename);
+            OutputStream finalOutput = ofStream;
             // Set up the encryption stage if appropriate, and emit the correct
             // header
             if (encrypting) {
-                finalOutput = emitAesBackupHeader(headerbuf, finalOutput,
+                finalOutput = emitAesBackupHeader(headerBuf, finalOutput,
                         password, isKitKat);
             } else {
-                headerbuf.append("none\n");
+                headerBuf.append("none\n");
             }
 
-            byte[] header = headerbuf.toString().getBytes(StandardCharsets.UTF_8);
-            ofstream.write(header);
+            byte[] header = headerBuf.toString().getBytes(StandardCharsets.UTF_8);
+            ofStream.write(header);
 
             // Set up the compression stage feeding into the encryption stage
             // (if any)
@@ -328,8 +332,8 @@ public class AndroidBackup {
         return array;
     }
 
-    private static OutputStream emitAesBackupHeader(StringBuilder headerbuf,
-            OutputStream ofstream, String encryptionPassword, boolean useUtf8) throws Exception {
+    private static OutputStream emitAesBackupHeader(StringBuilder headerBuf,
+            OutputStream ofStream, String encryptionPassword, boolean useUtf8) throws Exception {
         // User key will be used to encrypt the master key.
         byte[] newUserSalt = randomBytes(PBKDF2_SALT_SIZE);
         SecretKey userKey = buildPasswordKey(encryptionPassword, newUserSalt,
@@ -340,32 +344,32 @@ public class AndroidBackup {
         random.nextBytes(masterPw);
         byte[] checksumSalt = randomBytes(PBKDF2_SALT_SIZE);
 
-        // primary encryption of the datastream with the random key
+        // primary encryption of the data stream with the random key
         Cipher c = Cipher.getInstance(ENCRYPTION_MECHANISM);
         SecretKeySpec masterKeySpec = new SecretKeySpec(masterPw, "AES");
         c.init(Cipher.ENCRYPT_MODE, masterKeySpec);
-        OutputStream finalOutput = new CipherOutputStream(ofstream, c);
+        OutputStream finalOutput = new CipherOutputStream(ofStream, c);
 
         // line 4: name of encryption algorithm
-        headerbuf.append(ENCRYPTION_ALGORITHM_NAME);
-        headerbuf.append('\n');
+        headerBuf.append(ENCRYPTION_ALGORITHM_NAME);
+        headerBuf.append('\n');
         // line 5: user password salt [hex]
-        headerbuf.append(toHex(newUserSalt));
-        headerbuf.append('\n');
+        headerBuf.append(toHex(newUserSalt));
+        headerBuf.append('\n');
         // line 6: master key checksum salt [hex]
-        headerbuf.append(toHex(checksumSalt));
-        headerbuf.append('\n');
+        headerBuf.append(toHex(checksumSalt));
+        headerBuf.append('\n');
         // line 7: number of PBKDF2 rounds used [decimal]
-        headerbuf.append(PBKDF2_HASH_ROUNDS);
-        headerbuf.append('\n');
+        headerBuf.append(PBKDF2_HASH_ROUNDS);
+        headerBuf.append('\n');
 
         // line 8: IV of the user key [hex]
         Cipher mkC = Cipher.getInstance(ENCRYPTION_MECHANISM);
         mkC.init(Cipher.ENCRYPT_MODE, userKey);
 
         byte[] IV = mkC.getIV();
-        headerbuf.append(toHex(IV));
-        headerbuf.append('\n');
+        headerBuf.append(toHex(IV));
+        headerBuf.append('\n');
 
         // line 9: master IV + key blob, encrypted by the user key [hex]. Blob
         // format:
@@ -394,8 +398,8 @@ public class AndroidBackup {
         mkOut.write(checksum);
         mkOut.flush();
         byte[] encryptedMk = mkC.doFinal(blob.toByteArray());
-        headerbuf.append(toHex(encryptedMk));
-        headerbuf.append('\n');
+        headerBuf.append(toHex(encryptedMk));
+        headerBuf.append('\n');
 
         return finalOutput;
     }
@@ -459,7 +463,7 @@ public class AndroidBackup {
     public static SecretKey buildCharArrayKey(char[] pwArray, byte[] salt,
             int rounds, boolean useUtf8) {
         // Original code from BackupManagerService
-        // this produces different results when run with Sun/Oracale Java SE
+        // this produces different results when run with Sun/Oracle Java SE
         // which apparently treats password bytes as UTF-8 (16?)
         // (the encoding is left unspecified in PKCS#5)
 
