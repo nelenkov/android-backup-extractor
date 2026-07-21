@@ -27,7 +27,7 @@ jobs:
         gradle-home-cache-cleanup: true
 
     - name: Set up Android
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@v4
       with:
         packages: ''
 
