@@ -1,64 +1,48 @@
 Android backup extractor
 ========================
 
-Utility to extract and repack Android backups created with ```adb backup``` (ICS+). 
-Largely based on ```BackupManagerService.java``` from AOSP. 
+[![Build and release](https://github.com/nelenkov/android-backup-extractor/actions/workflows/build.yml/badge.svg)](https://github.com/nelenkov/android-backup-extractor/actions/workflows/build.yml)
+
+Utility to extract and repack Android backups created with `adb backup` (ICS+).
+Largely based on `BackupManagerService.java` from AOSP.
 
 # Building
 
-Requires Java 11. Handling encrypted backups requires the JCE unlimited strength 
-jurisdiction policy (not needed if using current Java 9 release).
+Building requires JDK 17+ (via the bundled Gradle wrapper). The compiled JAR targets Java 8+ bytecode (`--release 8`).
 
-http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html
+To create a self-executable all-in-one JAR:
 
-Use one of the tools listed below to build or see [Releases](#releases) for pre-built binaries (runnable jar files).
+```shell
+./gradlew shadowJar
+```
 
-## With Eclipse: 
+Then run:
 
-Download the latest version of Bouncy Castle Provider jar 
-(```bcprov-jdk15on-*.jar```) from [here](http://www.bouncycastle.org/latest_releases.html):
+```shell
+java -jar build/libs/abe-all.jar pack|unpack|pack-kk ...
+```
 
-Drop the latest Bouncy Castle jar in ```lib/```, import in Eclipse and adjust 
-build path if necessary. Use the ```abe``` script to start the utility. 
+Or use the included `./abe` wrapper script, which locates `build/libs/abe-all.jar` automatically.
 
-## With Maven (requires at least JDK11):
+## Running tests
 
-To create a self-executable all-in-one jar:
-```mvn clean package``` and then:
+```shell
+./gradlew test
+```
 
-```java -jar target/abe.jar pack|unpack|pack-kk ...```
-
-## With Ant:
-
-Use the bundled Ant script to create an all-in-one jar and run with: 
-(you still need to put the Bouncy Castle jar in lib/; modify the 
-```bcprov.jar``` property accordingly)
-
-```java -jar abe.jar pack|unpack|pack-kk ...```
-
-(Thanks to Jan Peter Stotz for contributing the build.xml file)
-
-## With Gradle:
-
-Use gradle to create an all-in-one jar:
-```./gradlew``` and then:
-
-```java -jar build/libs/abe-all.jar pack|unpack|pack-kk ...```
+See [Releases](#releases) for pre-built runnable JAR files.
 
 # Usage
 
-## Syntax: 
-* unpack:       ```abe unpack  <backup.ab> <backup.tar> [password]```
-* pack:         ```abe pack    <backup.tar> <backup.ab> [password]```
-* pack for 4.4: ```abe pack-kk <backup.tar> <backup.ab> [password]```
+## Syntax
+* unpack:       `abe unpack  <backup.ab> <backup.tar> [password]`
+* pack:         `abe pack    <backup.tar> <backup.ab> [password]`
+* pack for 4.4: `abe pack-kk <backup.tar> <backup.ab> [password]`
   (creates version 2 backups, compatible with Android 4.4.3)
 
-If the filename is `-`, then data is read from standard input or written to
-standard output.
+If the filename is `-`, data is read from standard input or written to standard output.
 
-If the password is not given on the command line, then the environment variable
-`ABE_PASSWD` is tried. If you don't specify a password the backup archive won't
-be encrypted but only compressed. 
+If the password is not given on the command line, the environment variable `ABE_PASSWD` is tried. If no password is specified, the backup archive will not be encrypted, only compressed.
 
 ## Packing tar archives
 
@@ -68,7 +52,7 @@ be encrypted but only compressed.
   - *(you can try restoring manually via `adb push` and `adb shell`)*
 - Errors are only printed to logcat, look out for `BackupManagerService`.
 
-The safest way to pack a tar archive is to get the list of files from the original backup.tar file:
+The safest way to pack a tar archive is to get the list of files from the original `backup.tar` file:
 ```shell
 tar tf backup.tar | grep -F "com.package.name" > package.list
 ```
@@ -76,20 +60,17 @@ And then use that list to build the tar file. In the extracted backup directory:
 ```shell
 tar cf restore.tar -T package.list
 ```
-You can now pack `restore.tar` and try `adb restore restore.ab`
+You can now pack `restore.tar` and try `adb restore restore.ab`.
 
 # Releases
 
-[Releases](https://github.com/nelenkov/android-backup-extractor/releases/latest) are built with Travis CI from the master branch and include a runnable fat jar.
+[Releases](https://github.com/nelenkov/android-backup-extractor/releases/latest) are built with GitHub Actions when a version tag (`v*`, e.g. `v1.0.0`) is pushed and include a runnable fat JAR, its SHA-256 checksum, and build provenance attestation.
 
 Use the binaries at your own risk. No warranty or support provided.
 
-Please report only bugs in backup extractor itself, I can't answer questions regrading unpacking/repacking backups or tar files.
+Please report only bugs in backup extractor itself; I can't answer questions regarding unpacking/repacking backups or tar files.
 (See [Usage](#usage) for a mini usage guide.)
-
-[![Build Status](https://travis-ci.com/nelenkov/android-backup-extractor.svg?branch=master)](https://travis-ci.com/nelenkov/android-backup-extractor)
 
 # Notes
 
 More details about the backup format and the tool implementation in the [associated blog post](https://nelenkov.blogspot.de/2012/06/unpacking-android-backups.html).
-
