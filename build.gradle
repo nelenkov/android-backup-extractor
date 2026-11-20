@@ -24,14 +24,26 @@ repositories {
 
 dependencies {
     implementation 'org.bouncycastle:bcprov-jdk18on:1.85'
+    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 sourceSets {
     main {
         java {
-            srcDir 'src'
+            srcDirs = ['src']
         }
     }
+    test {
+        java {
+            srcDirs = ['test']
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
 }
 
 shadowJar {
