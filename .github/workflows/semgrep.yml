@@ -1,19 +1,23 @@
+name: Semgrep
+
 on:
   pull_request: {}
   push:
     branches:
-    - main
-    - master
-name: Semgrep
+      - master
+
+permissions:
+  contents: read
+
 jobs:
   semgrep:
     name: Scan
     runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
     steps:
-    - uses: actions/checkout@v5
-    - uses: returntocorp/semgrep-action@v1
-      with:
-        auditOn: push
-        publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Run Semgrep scan
+        run: semgrep scan --config auto --error
