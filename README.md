@@ -52,13 +52,21 @@ If the password is not given on the command line, the environment variable `ABE_
   - *(you can try restoring manually via `adb push` and `adb shell`)*
 - Errors are only printed to logcat, look out for `BackupManagerService`.
 
-The safest way to pack a tar archive is to get the list of files from the original `backup.tar` file:
+The safest way to pack a tar archive is to extract the exact entry order from the original `backup.tar` file (excluding directory-only entries ending in `/`):
 ```shell
-tar tf backup.tar | grep -F "com.package.name" > package.list
+tar tf backup.tar | grep -F "com.package.name" | grep -v '/$' > package.list
 ```
-And then use that list to build the tar file. In the extracted backup directory:
+Then build the new tar archive from the extracted backup directory with `--no-recursion` so directories in the list are not re-walked (which would duplicate files and break ordering):
 ```shell
-tar cf restore.tar -T package.list
+tar cf restore.tar --no-recursion -T package.list
+```
+On macOS, set `COPYFILE_DISABLE=1` to avoid adding AppleDouble (`._*`) metadata entries, or use POSIX `pax` instead of BSD `tar` (which avoids directory entries, trailing slashes, and `.DS_Store` files):
+```shell
+pax -wd < package.list > restore.tar
+```
+If you are building a fresh archive from an extracted `apps/` directory on macOS/Linux (note that each package's `_manifest` file must appear before its data files):
+```shell
+find apps -type f -not -path '*/\.*' | pax -wd > restore.tar
 ```
 You can now pack `restore.tar` and try `adb restore restore.ab`.
 
