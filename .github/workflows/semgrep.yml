@@ -39,7 +39,7 @@ jobs:
           semgrep scan \
             --config p/java \
             --config p/github-actions \
-            --config p/bash \
+            --config r/bash \
             --metrics=off \
             --sarif-output=semgrep.sarif \
             --error
