@@ -320,6 +320,12 @@ class AndroidBackupTest {
         assertTrue(!Arrays.equals(v1Checksum, v2Checksum));
     }
 
+    @Test
+    void getVersionReturnsNonEmptyString() {
+        String version = Main.getVersion();
+        assertTrue(version != null && !version.isEmpty());
+    }
+
     private static byte[] samplePayload() {
         byte[] data = new byte[12 * 1024];
         for (int i = 0; i < data.length; i++) {
