@@ -1,78 +1,73 @@
 #!/bin/sh
+set -eu
 
-command -v cygpath >/dev/null 2>&1
-on_cygwin=$(( $? == 0 ? 1 : 0 ))
+on_cygwin=0
+if command -v cygpath >/dev/null 2>&1; then
+	on_cygwin=1
+fi
 
-# below, we use non-environment variables to avoid implicitly updating the
-# environment with UNIX versions of paths.
-
-if [ "$on_cygwin" = 1 ] && [ "$JAVA" ]; then
+if [ "$on_cygwin" = 1 ] && [ -n "${JAVA:-}" ]; then
 	java=$(cygpath --unix "$JAVA")
 else
-	java=$JAVA
+	java=${JAVA:-}
 fi
 
-if [ "$on_cygwin" = 1 ] && [ "$JAVA_HOME" ]; then
+if [ "$on_cygwin" = 1 ] && [ -n "${JAVA_HOME:-}" ]; then
 	java_home=$(cygpath --unix "$JAVA_HOME")
 else
-	java_home=$JAVA_HOME
+	java_home=${JAVA_HOME:-}
 fi
 
-# honor JAVA environment variable if set; if not, use JAVA_HOME (if it's set);
-# if not, fall back to the old hardcoded default.
-: "${java:=${java_home:-/usr}/bin/java}"
+# Honor JAVA if set; otherwise use JAVA_HOME/bin/java or java from PATH.
+if [ -z "$java" ]; then
+	if [ -n "$java_home" ]; then
+		java="$java_home/bin/java"
+	else
+		java=$(command -v java || true)
+	fi
+fi
 
-# Follow symlinks, if we have readlink available; this will allow a symlink to
-# the real wrapper script's location to be installed somewhere on the PATH (ie.
-# /usr/local/bin/abe, or $HOME/bin/abe).
-#
-# This technique has flaws. See http://mywiki.wooledge.org/BashFAQ/028 to
-# understand its limitations before reusing it in your own scripts.
+if [ -z "$java" ] || [ ! -x "$java" ]; then
+	echo "ERROR: Could not find executable java (set JAVA or JAVA_HOME, or ensure java is on PATH)." >&2
+	exit 1
+fi
+
+# Resolve symlinks to locate the real directory containing this wrapper script.
 executable=$0
 if command -v readlink >/dev/null 2>&1; then
-	while target=$(readlink "$executable"); do
-		[ "$executable" = "$target" ] && break # avoid endless loops
-		executable=$target
-	done
+	if resolved=$(readlink -f "$executable" 2>/dev/null); then
+		executable=$resolved
+	else
+		while [ -L "$executable" ]; do
+			link_dir=$(dirname "$executable")
+			target=$(readlink "$executable")
+			case "$target" in
+				/*) executable=$target ;;
+				*) executable="$link_dir/$target" ;;
+			esac
+		done
+	fi
 fi
-basedir=$(dirname "$executable")
+basedir=$(CDPATH='' cd -- "$(dirname "$executable")" && pwd)
 
-cp=$basedir:$basedir/bin:$basedir/abe.jar
-for f in $basedir/lib/*.jar; do
-	# note that this technique only works as long as nullglob is disabled
-	# (which it is, by default, on all POSIX shells); we're relying on the
-	# *.jar glob expression returning literally '*.jar' as a result when no
-	# matches exist on-disk.
-	[ -e "$f" ] || {
-		echo "WARNING: No jars found in lib directory. Please download a BouncyCastle implementation per the README (looking for: $f)" >&2
-		continue
-	}
-	cp=$cp:$f
+jar=""
+for candidate in \
+	"$basedir/build/libs/abe-all.jar" \
+	"$basedir/abe-all.jar" \
+	"$basedir/abe.jar"; do
+	if [ -f "$candidate" ]; then
+		jar=$candidate
+		break
+	fi
 done
 
-[ -e "$basedir/abe.jar" ] || {
-	echo "ERROR: Could not find abe.jar in $basedir; did you run ant to compile?" >&2
+if [ -z "$jar" ]; then
+	echo "ERROR: Could not find abe-all.jar in $basedir/build/libs (or $basedir); run './gradlew shadowJar' to build." >&2
 	exit 1
-}
-
-[ -e "$java" ] || {
-	echo "ERROR: Could not find java executable at $java" >&2
-	exit 1
-}
-
-if [ "$on_cygwin" = 1 ]; then
-	# convert classpath from UNIX to Windows paths
-	unix_cp=$cp
-	IFS=:
-	set -f
-	cp=
-	for element in $unix_cp; do
-		[ "$element" ] || continue
-		cp="$cp;$(cygpath --windows "$element")"
-	done
 fi
 
-# Using "exec" here replaces the script's process table entry with that of the
-# JVM, avoiding the need to keep the script in memory while the executable
-# runs.
-exec "$java" -cp "$cp" org.nick.abe.Main "$@"
+if [ "$on_cygwin" = 1 ]; then
+	jar=$(cygpath --windows "$jar")
+fi
+
+exec "$java" -jar "$jar" "$@"
