@@ -2,5 +2,14 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "Keep JUnit on 5.x while targetCompatibility is Java 8",
+      "matchPackageNames": [
+        "/^org\\.junit/"
+      ],
+      "allowedVersions": "<6.0.0"
+    }
   ]
 }
