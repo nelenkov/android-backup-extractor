@@ -4,11 +4,29 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle/**'
+      - '.github/workflows/codeql-analysis.yml'
   pull_request:
     branches:
       - master
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle/**'
+      - '.github/workflows/codeql-analysis.yml'
   schedule:
     - cron: '0 12 * * 5'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   actions: read
@@ -23,25 +41,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Set up Java
-        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6
-        with:
-          distribution: temurin
-          java-version: 25
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
-        with:
-          cache-cleanup: on-success
-
       - name: Initialize CodeQL
         uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
           languages: java-kotlin
-          build-mode: manual
-
-      - name: Build for CodeQL
-        run: ./gradlew --no-daemon compileJava
+          build-mode: none
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
