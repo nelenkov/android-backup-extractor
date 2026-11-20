@@ -134,8 +134,5 @@ grep -qxF "$source_line" "${HOME}/.bashrc" || echo "$source_line" >> "${HOME}/.b
 # shellcheck source=/dev/null
 . "${HOME}/.local/share/java/env.sh"
 
-# Warm caches and verify Gradle and Maven builds.
-./gradlew --no-daemon shadowJar
-if command -v mvn >/dev/null 2>&1; then
-    mvn -B package
-fi
+# Warm caches and verify Gradle build and tests.
+./gradlew --no-daemon check shadowJar
