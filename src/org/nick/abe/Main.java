@@ -1,25 +1,16 @@
 package org.nick.abe;
 
-import java.security.Security;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-
 public class Main {
 
     public static void main(String[] args) {
-        Security.addProvider(new BouncyCastleProvider());
-
         if (args.length < 3) {
             usage();
-
             System.exit(1);
         }
 
         String mode = args[0];
         if (!"pack".equals(mode) && !"unpack".equals(mode) && !"pack-kk".equals(mode)) {
             usage();
-
             System.exit(1);
         }
 
@@ -36,13 +27,19 @@ public class Main {
             password = System.getenv("ABE_PASSWD");
         }
 
-        if (unpack) {
-            AndroidBackup.extractAsTar(backupFilename, tarFilename, password);
-        } else {
-            boolean isKitKat = "pack-kk".equals(mode);
-            AndroidBackup.packTar(tarFilename, backupFilename, password, isKitKat);
+        try {
+            if (unpack) {
+                AndroidBackup.extractAsTar(backupFilename, tarFilename, password);
+            } else {
+                boolean isKitKat = "pack-kk".equals(mode);
+                AndroidBackup.packTar(tarFilename, backupFilename, password, isKitKat);
+            }
+        } catch (RuntimeException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            String message = cause.getMessage();
+            System.err.println("Error: " + (message != null ? message : cause.getClass().getSimpleName()));
+            System.exit(1);
         }
-
     }
 
     private static void usage() {
