@@ -1,21 +1,24 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "8.1.1"
+    id 'com.gradleup.shadow' version '9.6.1'
     id 'java'
     id 'application'
     id 'maven-publish'
 }
 
-application.mainClass.set 'org.nick.abe.Main'
+application {
+    mainClass = 'org.nick.abe.Main'
+}
 
 group = 'org.nick.abe'
 
-var targetJavaVersion = JavaVersion.VERSION_1_8
 java {
-    sourceCompatibility = targetCompatibility = targetJavaVersion
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-compileJava {
-    options.release.set targetJavaVersion.majorVersion.toInteger()
+tasks.withType(JavaCompile).configureEach {
+    options.release = 8
+    options.encoding = 'UTF-8'
 }
 
 repositories {
@@ -42,19 +45,20 @@ sourceSets {
     }
 }
 
-test {
+tasks.named('test') {
     useJUnitPlatform()
 }
 
-shadowJar {
+tasks.named('shadowJar') {
     minimize()
-    archiveBaseName.set 'abe'
+    archiveBaseName = 'abe'
+    archiveClassifier = 'all'
 }
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from(components.java)
+            from components.java
         }
     }
 }

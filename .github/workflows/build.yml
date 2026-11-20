@@ -1,51 +1,110 @@
 name: "Build and release"
+
 on:
   push:
     branches:
-    - master
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
 jobs:
-  build-release:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
-    - name: Check out
-      uses: actions/checkout@v5
+      - name: Check out
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
-    - name: Set up  vars
-      shell: bash
-      run: |
-         echo "SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+      - name: Set up Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: 21
 
-    - name: Set up Java
-      uses: actions/setup-java@v5
-      with:
-        distribution: temurin
-        java-version: 22
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          gradle-home-cache-cleanup: true
 
-    - name: Set up Gradle
-      uses: gradle/actions/setup-gradle@v5
-      with:
-        gradle-home-cache-cleanup: true
+      - name: Build and test
+        run: ./gradlew --no-daemon check shadowJar
 
-    - name: Set up Android
-      uses: android-actions/setup-android@v3
-      with:
-        packages: ''
+      - name: Smoke test fat JAR
+        run: |
+          set -euo pipefail
+          tmp_dir="$(mktemp -d)"
+          trap 'rm -rf "$tmp_dir"' EXIT
+          mkdir -p "$tmp_dir/in" "$tmp_dir/out" "$tmp_dir/out-stdin"
+          printf 'smoke test payload\n' > "$tmp_dir/in/sample.txt"
+          tar cf "$tmp_dir/in.tar" -C "$tmp_dir/in" sample.txt
 
-    - name: Build
-      run: ./gradlew
+          java -jar build/libs/abe-all.jar pack-kk "$tmp_dir/in.tar" "$tmp_dir/enc.ab" "pässwörd"
+          java -jar build/libs/abe-all.jar unpack "$tmp_dir/enc.ab" "$tmp_dir/out.tar" "pässwörd"
+          tar xf "$tmp_dir/out.tar" -C "$tmp_dir/out"
+          diff -u "$tmp_dir/in/sample.txt" "$tmp_dir/out/sample.txt"
 
-    - name: Prepare jar
-      if: success()
-      id: prepareJar
-      run: |
-         mv build/libs/abe-all.jar abe-${{ env.SHA_SHORT }}.jar
+          java -jar build/libs/abe-all.jar pack - - "pipe-pass" < "$tmp_dir/in.tar" \
+            | java -jar build/libs/abe-all.jar unpack - "$tmp_dir/out-stdin.tar" "pipe-pass"
+          tar xf "$tmp_dir/out-stdin.tar" -C "$tmp_dir/out-stdin"
+          diff -u "$tmp_dir/in/sample.txt" "$tmp_dir/out-stdin/sample.txt"
 
-    - name: Release
-      uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: latest
-        prerelease: false
-        files: |
-          LICENSE
-          abe-${{ env.SHA_SHORT }}.jar
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: abe-jar
+          path: build/libs/abe-all.jar
+          if-no-files-found: error
+
+  release:
+    needs: build-and-test
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: abe-jar
+          path: dist
+
+      - name: Prepare release assets
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          mv dist/abe-all.jar "abe-${TAG_NAME}.jar"
+          sha256sum "abe-${TAG_NAME}.jar" > "abe-${TAG_NAME}.jar.sha256"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: "abe-${{ github.ref_name }}.jar"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          prerelease_flag=""
+          if [[ "$TAG_NAME" == *-* ]]; then
+            prerelease_flag="--prerelease"
+          fi
+          gh release create "$TAG_NAME" \
+            LICENSE \
+            "abe-${TAG_NAME}.jar" \
+            "abe-${TAG_NAME}.jar.sha256" \
+            --title "$TAG_NAME" \
+            --generate-notes \
+            $prerelease_flag
