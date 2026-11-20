@@ -3,6 +3,12 @@ package org.nick.abe;
 public class Main {
 
     public static void main(String[] args) {
+        if (args.length == 1 && ("--version".equals(args[0])
+                || "-version".equals(args[0]) || "-V".equals(args[0]))) {
+            System.out.println("abe " + getVersion());
+            return;
+        }
+
         if (args.length < 3) {
             usage();
             System.exit(1);
@@ -42,6 +48,12 @@ public class Main {
         }
     }
 
+    static String getVersion() {
+        Package pkg = Main.class.getPackage();
+        String version = pkg != null ? pkg.getImplementationVersion() : null;
+        return version != null && !version.isEmpty() ? version : "dev";
+    }
+
     private static void usage() {
         System.out.println("Usage:");
         System.out
@@ -50,6 +62,8 @@ public class Main {
                 .println("  pack:\t\tabe pack\t<backup.tar> <backup.ab> [password]");
         System.out
                 .println("  pack for 4.4:\tabe pack-kk\t<backup.tar> <backup.ab> [password]");
+        System.out
+                .println("  version:\tabe --version");
         System.out
                 .println("If the filename is `-`, then data is read from standard input");
         System.out

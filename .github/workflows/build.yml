@@ -40,11 +40,21 @@ jobs:
           cache-cleanup: on-success
 
       - name: Build and test
-        run: ./gradlew --no-daemon check shadowJar
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gradle_args=(--no-daemon check shadowJar)
+          if [[ "$REF_TYPE" == "tag" && "$REF_NAME" == v* ]]; then
+            gradle_args+=("-PreleaseVersion=${REF_NAME#v}")
+          fi
+          ./gradlew "${gradle_args[@]}"
 
       - name: Smoke test fat JAR
         run: |
           set -euo pipefail
+          java -jar build/libs/abe-all.jar --version
           tmp_dir="$(mktemp -d)"
           trap 'rm -rf "$tmp_dir"' EXIT
           mkdir -p "$tmp_dir/in" "$tmp_dir/out" "$tmp_dir/out-stdin"
