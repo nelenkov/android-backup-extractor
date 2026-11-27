@@ -35,7 +35,7 @@ repositories {
 
 dependencies {
     implementation 'org.bouncycastle:bcprov-jdk18on:1.87'
-    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation platform('org.junit:junit-bom:5.14.5')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
